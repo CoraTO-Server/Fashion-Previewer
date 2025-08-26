@@ -1,4 +1,4 @@
-# Fashion Previewer v2.1
+# Fashion Previewer v2.2
 
 A Python application for previewing and customizing character fashion using palette files.
 
@@ -72,7 +72,7 @@ The application expects the following folders to be present:
 
 ```
 FashionPreviewer/
-├── fashionpreviewer_v2.1.py
+├── fashionpreviewer_v2.2.py
 ├── run_previewer.bat          # Windows launcher
 ├── launch_previewer.py        # Cross-platform launcher
 ├── rawbmps/                   # Character images
@@ -181,7 +181,7 @@ If the launchers don't work:
 
 ### Other Bugs
 
-(These *should* be fixed in 2.1 but better safe than sorry)
+(These *should* be fixed in v2.1+ but better safe than sorry)
 
 1. **Sliders move on their own sometimes**
    - Program's haunted (vibecoded); needs a priest (real coder)
@@ -190,6 +190,10 @@ If the launchers don't work:
 2. **Sliders keep resetting**
    - Stop trying to make black move it's not going to like it at all, we don't
       know why--please be nice this is vibecoded and free :(
+
+(These *should* be fixed in v2.2+ but better safe than sorry)
+
+3. **Fox First Job fashion (purse) shows green hair when selected
 
 
 ## Support
