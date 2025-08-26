@@ -19,7 +19,7 @@ def main():
     print("Launching Fashion Previewer...")
     
     # Check if the main script exists
-    main_script = "fashionpreviewer_v2.1.py"
+    main_script = "fashionpreviewer_v2.0.py"
     if not os.path.exists(main_script):
         print(f"ERROR: {main_script} not found!")
         print(f"Make sure this launcher is in the same folder as {main_script}")

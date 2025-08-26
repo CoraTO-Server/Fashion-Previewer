@@ -4,49 +4,6 @@ A Python application for previewing and customizing character fashion using pale
 
 # PLEASE READ THE LICENSE BEFORE USING THIS PROGRAM
 
-## Please Note:
-
-Our license may appear excessive, political, or restrictive at first glance,
-	but it serves a clear purpose. It is not about vendettas; it is about
-	boundaries. We will not tolerate mistreatment of our staff, our community,
-	our leadership, our love, or our effort. What we’ve built is carried by
-	care, and it deserves to be protected.
-
-This project is not born from spite, but from redemption. It is for the
-	players who were abandoned by greed, corruption, and neglect. It is for
-	those who were outcast, forgotten, or left behind. The developers who never
-	stood a chance without the resources and manpower we now provide.
-
-	We fully intend to break that cycle. The only question is:
-	
-	Will you stand with us, or continue the pattern?
-
-## Credits
-
-This was made possible by the following players:
-- KusanagiKyo
-- Dino
-- Mewsie
-
-Thank you for your hard work and contributions to bring this tool to life for the community!!!
-
-## Features
-
-- **Character Selection:** Choose from different characters and jobs
-- **Fashion Customization:** Apply different fashion palettes
-- **Hair Customization:** Apply different hair palettes
-- **3rd Job Base Fashion:** Special handling for 3rd job characters
-- **Custom Palettes:** Add your own custom palettes in `custom_pals/`
-- **Export Options:** Export as transparent PNG or combined palette
-- **Multiple Preview Modes:** Single frame, all frames, or custom range
-- **Live Pal Editing**: Single or multiple indexes with sliders and saved colors
-
-## Custom Palette Format
-
-- **Fashion palettes:** `chr###_w##.pal` (e.g., `chr001_w47.pal`)
-- **Hair palettes:** `chr###_#.pal` (e.g., `chr001_5.pal`)
-- Place custom palettes in the `custom_pals/` folder
-
 ## Quick Start
 
 ### For Windows Users:
@@ -72,7 +29,7 @@ The application expects the following folders to be present:
 
 ```
 FashionPreviewer/
-├── fashionpreviewer_v2.1.py
+├── fashionpreviewer_v2.0.py
 ├── run_previewer.bat          # Windows launcher
 ├── launch_previewer.py        # Cross-platform launcher
 ├── rawbmps/                   # Character images
@@ -177,13 +134,11 @@ If the launchers don't work:
 3. **Run the Application:**
    - Open Command Prompt
    - Navigate to FashionPreviewer folder
-   - Run: `python fashionpreviewer_v2.1.py`
+   - Run: `python fashionpreviewer_v2.0.py`
 
 ### Other Bugs
 
-(These *should* be fixed in 2.1 but better safe than sorry)
-
-1. **Sliders move on their own sometimes**
+1. **Sliders move on their own**
    - Program's haunted (vibecoded); needs a priest (real coder)
    - Uses divine intuition to tell what your colors *should* be, for sure. Definitely.
 
@@ -191,6 +146,21 @@ If the launchers don't work:
    - Stop trying to make black move it's not going to like it at all, we don't
       know why--please be nice this is vibecoded and free :(
 
+## Features
+
+- **Character Selection:** Choose from different characters and jobs
+- **Fashion Customization:** Apply different fashion palettes
+- **Hair Customization:** Apply different hair palettes
+- **3rd Job Base Fashion:** Special handling for 3rd job characters
+- **Custom Palettes:** Add your own custom palettes in `custom_pals/`
+- **Export Options:** Export as transparent PNG or combined palette
+- **Multiple Preview Modes:** Single frame, all frames, or custom range
+
+## Custom Palette Format
+
+- **Fashion palettes:** `chr###_w##.pal` (e.g., `chr001_w47.pal`)
+- **Hair palettes:** `chr###_#.pal` (e.g., `chr001_5.pal`)
+- Place custom palettes in the `custom_pals/` folder
 
 ## Support
 
@@ -200,3 +170,29 @@ If you continue to have issues:
 3. Try running from Command Prompt to see error messages
 4. **Most importantly**: Ensure you're running from the correct directory
 5. Use the provided launcher scripts to avoid working directory issues
+
+## Credits
+
+This was made possible by the following players:
+- KusanagiKyo
+- Dino
+- Mewsie
+
+Thank you for your hard work and contributions to bring this tool to life!!!
+
+## Please Note:
+
+Our license may appear excessive, political, or restrictive at first glance,
+	but it serves a clear purpose. It is not about vendettas; it is about
+	boundaries. We will not tolerate mistreatment of our staff, our community,
+	our leadership, our love, or our effort. What we’ve built is carried by
+	care, and it deserves to be protected.
+
+This project is not born from spite, but from redemption. It is for the
+	players who were abandoned by greed, corruption, and neglect. It is for
+	those who were outcast, forgotten, or left behind. The developers who never
+	stood a chance without the resources and manpower we now provide.
+
+	We fully intend to break that cycle. The only question is:
+	
+	Will you stand with us, or continue the pattern?

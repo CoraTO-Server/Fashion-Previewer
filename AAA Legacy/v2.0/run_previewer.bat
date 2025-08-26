@@ -27,9 +27,9 @@ if not exist "launch_previewer.py" (
 )
 
 REM Check if the main script exists
-if not exist "fashionpreviewer_v2.1.py" (
-    echo ERROR: fashionpreviewer_v2.1.py not found!
-    echo Make sure this batch file is in the same folder as fashionpreviewer_v2.1.py
+if not exist "fashionpreviewer_v2.0.py" (
+    echo ERROR: fashionpreviewer_v2.0.py not found!
+    echo Make sure this batch file is in the same folder as fashionpreviewer_v2.0.py
     pause
     exit /b 1
 )
