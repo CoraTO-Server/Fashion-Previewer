@@ -193,7 +193,8 @@ If the launchers don't work:
 
 (These *should* be fixed in v2.2+ but better safe than sorry)
 
-3. **Fox First Job fashion (purse) shows green hair when selected
+3. **Fox First Job fashion (purse) shows green hair when selected**
+   - UPDATE ALREADY!!!!!!!!!!
 
 
 ## Support
