@@ -36,6 +36,3 @@
 - Added window resizing feature (Mainly because Dragon 3rd job bugged again, resize to view the buttons)
 - Renamed given custom pals to better showcase example "vanilla structure"
 - Included a small tutorial made by Dino!
-
-# 2.2 - Addtnl Hotfix
-- Fixed bug where selecting first job Fox + purse only would result in an evil green taking over the hair
