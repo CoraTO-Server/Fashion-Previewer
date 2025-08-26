@@ -1,4 +1,4 @@
-# Fashion Previewer v2.0
+# Fashion Previewer v2.1
 
 A Python application for previewing and customizing character fashion using palette files.
 
@@ -93,8 +93,8 @@ FashionPreviewer/
 │       ├── chr018/
 │       └── ...
 └── custom_pals/              # Custom palettes (optional; I included some bunny ones for Preview)
-    ├── chr001_w47.pal
-    ├── chr001_w48.pal
+    ├── chr001_w07.pal		  # Can be named anything tbh; just following vanilla standards
+    ├── chr001_w17.pal		  # Can be named anything tbh; just following vanilla standards
     └── ...
 ```
 
