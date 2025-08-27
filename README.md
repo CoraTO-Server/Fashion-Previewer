@@ -1,6 +1,7 @@
 # Fashion Previewer v2.2
 
 A Python application for previewing and customizing character fashion using palette files.
+Now including Linux Support!
 
 # PLEASE READ THE LICENSE BEFORE USING THIS PROGRAM
 
@@ -26,6 +27,7 @@ This project is not born from spite, but from redemption. It is for the
 This was made possible by the following players:
 - KusanagiKyo
 - Dino
+- Yuki
 - Mewsie
 
 Thank you for your hard work and contributions to bring this tool to life for the community!!!
@@ -54,11 +56,18 @@ Thank you for your hard work and contributions to bring this tool to life for th
    - This will automatically check for Python and required folders
    - If you get dependency errors, run: `pip install Pillow`
 
+### For Linux:
+1. Install Python 3.7+ from [python.org](https://python.org)
+2. Open terminal/command prompt in the folder & run `pip install Pillow`
+3. Double-left click `run_previewer.sh` or run in the
+   terminal `python launch_previewer.py`
+
+
 ### For Other Operating Systems:
 1. Install Python 3.7+ from [python.org](https://python.org)
 2. Open terminal/command prompt in this folder
 3. Run: `pip install Pillow`
-4. Run: `python launch_previewer.py` or `python fashionpreviewer_v2.0.py`
+4. Run: `python launch_previewer.py` or `python fashionpreviewer_v2.2.py`
 
 ## Requirements
 
@@ -115,7 +124,7 @@ FashionPreviewer/
 
 1. **Wrong Working Directory**
    - **IMPORTANT**: The application must be run from the FashionPreviewer folder
-   - Use `run_previewer.bat` (Windows) or `launch_previewer.py` to ensure correct directory
+   - Use `run_previewer.bat` (Windows), `run_previewer.sh` (Linux), or `launch_previewer.py` to ensure correct directory
    - Don't double-click the .py file directly - it may run from the wrong directory
 
 2. **Missing Python Dependencies**
@@ -131,24 +140,29 @@ FashionPreviewer/
    - Reinstall Python and check "Add to PATH" during installation
    - Restart computer after Python installation
 
-
 ### Error Messages
 
-**"ModuleNotFoundError: No module named 'PIL'"**
-- Run: `pip install Pillow`
+1. **"ModuleNotFoundError: No module named 'PIL'"**
+   - Run: `pip install Pillow`
 
-**"FileNotFoundError" or "No images found"**
-- Check that `rawbmps/` folder exists with character subfolders
-- Verify image files are .bmp or .png format
-- Make sure you're running from the correct directory
+2. **"FileNotFoundError" or "No images found"**
+   - Check that `rawbmps/` folder exists with character subfolders
+   - Verify image files are .bmp or .png format
+   - Make sure you're running from the correct directory
 
-**"No palettes found"**
-- Check that `pals/fashion/` and `pals/hair/` folders exist
-- Verify palette files are .pal format
-- Make sure you're running from the correct directory
+3. **"No palettes found"**
+   - Check that `pals/fashion/` and `pals/hair/` folders exist
+   - Verify palette files are .pal format
+   - Make sure you're running from the correct directory
 
-**"ModuleNotFoundError: No module named 'PIL'"**
-- Run: `pip install Pillow`
+4. **"ModuleNotFoundError: No module named 'PIL'"**
+   - Run: `pip install Pillow`
+
+### Other Common Errors
+
+1. **Colors don't save when I am trying to save them in the pal editor!**
+   - Are you sure you're following the tutorial PNG? Right clicking to select a
+      color to save/change, and then left clicking to use to replace a cell?
 
 
 ### Debug Information
@@ -177,7 +191,7 @@ If the launchers don't work:
 3. **Run the Application:**
    - Open Command Prompt
    - Navigate to FashionPreviewer folder
-   - Run: `python fashionpreviewer_v2.1.py`
+   - Run: `python fashionpreviewer_v2.2.py`
 
 ### Other Bugs
 
@@ -194,7 +208,8 @@ If the launchers don't work:
 (These *should* be fixed in v2.2+ but better safe than sorry)
 
 3. **Fox First Job fashion (purse) shows green hair when selected**
-   - UPDATE ALREADY!!!!!!!!!!
+   - UPDATE ALREADY!!!!!!!!!! (pls)
+
 
 
 ## Support
