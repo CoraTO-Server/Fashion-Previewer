@@ -24,8 +24,8 @@ if [ ! -f "launch_previewer.py" ]; then
 fi
 
 # Check if the main script exists
-if [ ! -f "fashionpreviewer_v2.2.py" ]; then
-    echo "ERROR: fashionpreviewer_v2.2.py not found!"
+if [ ! -f "fashionpreviewer_v2.3.py" ]; then
+    echo "ERROR: fashionpreviewer_v2.3.py not found!"
     echo "Make sure this script is in the same folder as fashionpreviewer_v2.2.py"
     exit 1
 fi
