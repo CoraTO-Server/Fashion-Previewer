@@ -88,20 +88,9 @@ The application expects the following folders to be present:
 
 ```
 FashionPreviewer/
-├── changelog.md              # Obvious
-├── fashionpreviewer_v2.3.py  # da main sauce
-├── README.md                 # This document :3c
-├── LICENSE                   # Legally binding license
+├── fashionpreviewer_v2.2.py
 ├── run_previewer.bat          # Windows launcher
-├── run_previewer.sh          # Linux launcher
 ├── launch_previewer.py        # Cross-platform launcher
-├── AAA Legacy/                # Old Versions
-│   ├── v2.0/               
-│   ├── v2.1/               
-│   └── ...                   # Other versions
-├── AAA Tutorials/            # Tutorial Images
-│   ├── EditorTutorial.png/   # How to use the editor in general           
-│   └── pythonpathwind.png/   # How to add Python to Environment Paths              
 ├── rawbmps/                   # Character images
 │   ├── chr001/               # Bunny 1st Job images (bmps able to be removed/deleted)
 │   ├── chr002/               # Buffalo 1st Job images (bmps able to be removed/deleted)
@@ -228,13 +217,7 @@ If the launchers don't work:
 3. **Fox First Job fashion (purse) shows green hair when selected**
    - UPDATE ALREADY!!!!!!!!!! (pls)
 
-(These *should* be fixed in v2.3+ but better safe than sorry)
 
-4. **Third Job Dragon Fashion doesn't show the right indexes**
-   - Should be fixed in v2.3
-
-5. **Third Job Dragon Fashion sometimes has buttons disappear**
-   - Should be fixed in v2.3
 
 ## Support
 

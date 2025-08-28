@@ -39,9 +39,3 @@
 
 # 2.2 - Addtnl Hotfix
 - Fixed bug where selecting first job Fox + purse only would result in an evil green taking over the hair
-
-# 2.3 - Dragon Pity Update
-- Fixed bug where editing third job dragon coat was not showing the correct indices 
-- Adjusted minimum window size to avoid some buttons disappearing when viewing third job lion/dragon
-- Added warning when editing hair or base 3rd job fashion as it cannot be implemented in game
-- Added supporting text for saved colors
