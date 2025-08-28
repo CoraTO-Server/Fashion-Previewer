@@ -1,4 +1,4 @@
-# Fashion Previewer v2.2
+# Fashion Previewer + Pal Editor
 
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!
@@ -89,7 +89,7 @@ The application expects the following folders to be present:
 ```
 FashionPreviewer/
 ├── changelog.md              # Obvious
-├── fashionpreviewer_v2.3.py  # da main sauce
+├── fashionpreviewer_v#.#.py  # da main sauce (your version is a number i.e. v2.3)
 ├── README.md                 # This document :3c
 ├── LICENSE                   # Legally binding license
 ├── run_previewer.bat          # Windows launcher
@@ -209,7 +209,7 @@ If the launchers don't work:
 3. **Run the Application:**
    - Open Command Prompt
    - Navigate to FashionPreviewer folder
-   - Run: `python fashionpreviewer_v2.2.py`
+   - Run: `python fashionpreviewer_v#.#.py`   # Put your version number on each (i.e. v2.3)
 
 ### Other Bugs
 
