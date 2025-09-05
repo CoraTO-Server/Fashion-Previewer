@@ -32,10 +32,9 @@ This was made possible by the following players:
 
 Thank you for your hard work and contributions to bring this tool to life for the community!!!
 
-[Join our Trickster Development Discord and get a central repository for live support, tools, 
-   information, updates on releases, and more!](https://discord.gg/d6h8brNwYY)
+## [Join our Trickster Development Discord and get a central repository for live support, tools, information, updates on releases, and more!](https://discord.gg/d6h8brNwYY)
 
-![PalEditor]("AAA Tutorials/paleditor.gif")
+![PalEditor](https://github.com/CoraTO-Server/Fashion-Previewer/blob/main/AAA%20TUTORIALS/paleditor.gif)
 
 ## Features
 
