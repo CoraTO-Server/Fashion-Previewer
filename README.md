@@ -1,4 +1,4 @@
-# Fashion Previewer v3.0
+# Fashion Previewer v3.1
 
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!

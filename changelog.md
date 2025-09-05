@@ -66,3 +66,10 @@
 - Made Expanded Custom Preview Options gear menu to automatically set preview mode to "Custom"
 - Fixed Paula Fashion Labeling
 - Fixed UI a bit to fit the window a bit better
+
+# 3.1 - Emergency Bugfix and what have you
+- Fixed MyShop Portrait Display to be 135x135--proper MyShop resolution
+- Added additional user control over BMP output regarding background
+- Fine-tuned the new UI on the Custom Preview Options Menu
+- Fixed Custom Frame Display being finnicky with numbers (the numbers, Mason, what do they mean?!?!?)
+- Fixed User Chosen Frame Export being turned on by default and causing problems

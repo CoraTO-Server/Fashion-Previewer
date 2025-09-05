@@ -76,7 +76,7 @@ class CustomPreviewDialog:
         # Create dialog window
         self.dialog = tk.Toplevel(widget_parent)
         self.dialog.title("Custom Preview Settings")
-        self.dialog.geometry("300x420")  # Increased height
+        self.dialog.geometry("400x420")  # Increased width for side-by-side layout
         self.dialog.transient(widget_parent)
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
@@ -134,31 +134,64 @@ class CustomPreviewDialog:
         format_frame = tk.LabelFrame(main_frame, text="Export Format")
         format_frame.pack(fill="x", pady=(5,10), padx=5)
         
+        # Create left and right frames for horizontal layout
+        left_frame = tk.Frame(format_frame)
+        left_frame.pack(side="left", fill="y", padx=(5,10))
+        
+        right_frame = tk.Frame(format_frame)
+        right_frame.pack(side="right", fill="y", padx=(0,5))
+        
         self.format_var = tk.BooleanVar(value=self.use_bmp)
         # Add trace to update parent's export button when format changes
         def on_format_change(*args):
+            is_bmp = self.format_var.get()
             if isinstance(parent, PaletteTool):
-                parent.use_bmp_export = self.format_var.get()
+                parent.use_bmp_export = is_bmp
                 parent.update_export_button_text()
                 parent.master.update()  # Force update of the main window
+            
+            # Enable/disable BMP-specific options
+            state = "normal" if is_bmp else "disabled"
+            self.portrait_checkbox.configure(state=state)
+            self.myshop_checkbox.configure(state=state)
+            for child in self.cute_bg_frame.winfo_children():
+                if isinstance(child, tk.Radiobutton):
+                    child.configure(state=state)
         self.format_var.trace_add("write", on_format_change)
         
-        tk.Radiobutton(format_frame, text="Transparent PNG", variable=self.format_var, 
+        # Left side - Format options and checkboxes
+        tk.Radiobutton(left_frame, text="Transparent PNG", variable=self.format_var, 
                       value=False).pack(anchor="w", padx=10, pady=2)
-        tk.Radiobutton(format_frame, text="Background BMP", variable=self.format_var, 
+        tk.Radiobutton(left_frame, text="Background BMP", variable=self.format_var, 
                       value=True).pack(anchor="w", padx=10, pady=2)
         
         # Portrait checkbox for BMP export
         self.portrait_var = tk.BooleanVar(value=self.use_portrait)
-        self.portrait_checkbox = tk.Checkbutton(format_frame, text="Portrait (103x103)", 
+        self.portrait_checkbox = tk.Checkbutton(left_frame, text="Portrait (105x105)", 
                                               variable=self.portrait_var, state="disabled")
         self.portrait_checkbox.pack(anchor="w", padx=25, pady=2)
         
         # MyShop checkbox for BMP export
         self.myshop_var = tk.BooleanVar(value=self.use_myshop)
-        self.myshop_checkbox = tk.Checkbutton(format_frame, text="MyShop (105x105)", 
+        self.myshop_checkbox = tk.Checkbutton(left_frame, text="MyShop (135x135)", 
                                             variable=self.myshop_var, state="disabled")
         self.myshop_checkbox.pack(anchor="w", padx=25, pady=2)
+        
+        # Right side - Cute BG options
+        cute_bg_label = tk.Label(right_frame, text="BMP BG Style:")
+        cute_bg_label.pack(anchor="w", pady=(15,3))
+        
+        # Cute BG options frame
+        self.cute_bg_frame = tk.Frame(right_frame)
+        self.cute_bg_frame.pack(anchor="w")
+        
+        self.cute_bg_var = tk.StringVar(value="no_cute_bg")
+        tk.Radiobutton(self.cute_bg_frame, text="No Cute BG", variable=self.cute_bg_var,
+                      value="no_cute_bg", state="disabled").pack(side="top", anchor="w", pady=0)
+        tk.Radiobutton(self.cute_bg_frame, text="Cute BG", variable=self.cute_bg_var,
+                      value="cute_bg", state="disabled").pack(side="top", anchor="w", pady=0)
+        tk.Radiobutton(self.cute_bg_frame, text="Both", variable=self.cute_bg_var,
+                      value="both", state="disabled").pack(side="top", anchor="w", pady=0)
         
         # Update parent's settings when any option changes
         def update_parent_settings(*args):
@@ -200,8 +233,8 @@ class CustomPreviewDialog:
                 initial_frame = self.parent.chosen_frame
             else:
                 initial_frame = self.initial_frame
-                # Enable frame choice by default when opening dialog
-                initial_choice = True
+                # Frame choice should be off by default
+                initial_choice = False
         
         self.user_choice_var = tk.BooleanVar(value=initial_choice)
         choice_checkbox = tk.Checkbutton(choice_frame, text="User Choice Frame Export", 
@@ -376,16 +409,17 @@ class CustomPreviewDialog:
                 self.parent.use_bmp_export = self.format_var.get()
                 self.parent.use_portrait_export = self.portrait_var.get()
                 self.parent.use_myshop_export = self.myshop_var.get()
+                self.parent.cute_bg_option = self.cute_bg_var.get()  # This is handled separately from the result tuple
                 self.parent.show_frame_labels = self.labels_var.get()
                 self.parent.use_frame_choice = self.user_choice_var.get()
                 if self.user_choice_var.get():
-                    self.parent.chosen_frame = int(self.frame_choice_var.get())
+                    self.parent.chosen_frame = int(self.frame_choice_var.get()) - 1  # Convert to 0-based
                 # Apply immediate frame settings for custom preview
                 self.parent.custom_frame_count = frames
                 if not self.user_choice_var.get():
                     self.parent.custom_start_index = start_frame
             
-            # Include user's frame choice if enabled
+            # Include user's frame choice if enabled (keep as 1-based for result tuple)
             chosen_frame = int(self.frame_choice_var.get()) if self.user_choice_var.get() else None
             self.result = (frames, start_frame, end_frame, self.format_var.get(), self.labels_var.get(), 
                          self.portrait_var.get(), self.myshop_var.get(), self.user_choice_var.get(), chosen_frame)
@@ -431,7 +465,7 @@ class PaletteTool:
 
     def __init__(self, master):
         self.master = master
-        self.master.title("Fashion Previewer v3.0 - A CoraTO & Kyo Collab")
+        self.master.title("Fashion Previewer v3.1 - A CoraTO & Kyo Collab")
 
         # Dictionary to store frame range settings per character/job
         # Format: {char_id: {job: (frame_count, start_frame, end_frame)}}
@@ -452,20 +486,31 @@ class PaletteTool:
         self.custom_start_index = 0
         self.use_bmp_export = False  # False = PNG, True = BMP
         self.use_portrait_export = False  # Portrait mode (100x100)
-        self.use_myshop_export = False  # MyShop mode (105x105)
+        self.use_myshop_export = False  # MyShop mode (135x135)
+        self.cute_bg_option = "no_cute_bg"  # Options: "no_cute_bg", "cute_bg", "both"
         self.show_frame_labels = True  # Whether to show frame numbers
         self.use_right_click = False  # False = Left click, True = Right click for color saving
         self.use_frame_choice = False  # Whether to use user-chosen frame for export
         self.chosen_frame = 0  # User's chosen frame for export
         
-        # Load MyShop base image
+        # Load base images
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Load regular MyShop base image (105x105)
         myshop_base_path = os.path.join(script_dir, "rawbmps", "myshop_base.bmp")
         try:
             self.myshop_base = Image.open(myshop_base_path)
         except Exception as e:
             print(f"Failed to load MyShop base image: {e}")
             self.myshop_base = None
+            
+        # Load 135x135 MyShop base image
+        myshop_base135_path = os.path.join(script_dir, "rawbmps", "myshop_base135.bmp")
+        try:
+            self.myshop_base135 = Image.open(myshop_base135_path)
+        except Exception as e:
+            print(f"Failed to load MyShop base 135x135 image: {e}")
+            self.myshop_base135 = None
         
         # Available data
         self.available_characters = []
@@ -2098,7 +2143,7 @@ class PaletteTool:
             
             # If user chose a specific frame, set it as the start index
             if use_choice and chosen_frame is not None:
-                self.custom_start_index = chosen_frame
+                self.custom_start_index = chosen_frame - 1  # Convert from 1-based to 0-based
             else:
                 self.custom_start_index = start_frame
             print(f"=== DIALOG RESULT ===")
@@ -3856,29 +3901,9 @@ class PaletteTool:
             # Portrait export (if selected)
             if self.use_portrait_export:
                 def save_portrait():
-                    portrait_img = Image.new("RGB", (103, 103), self.background_color)
-                    x = (103 - img.width) // 2
-                    y = (103 - img.height) // 2
-                    portrait_img.paste(img, (x, y))
-                    portrait_img.save(portrait_path, "BMP", quality=24)
-                    return "Portrait (103x103)"
-                export_ops.append(save_portrait)
-            
-            # MyShop export (if selected)
-            if self.use_myshop_export:
-                def save_myshop():
-                    if self.myshop_base is None:
-                        raise AttributeError("MyShop base image not loaded")
-                    
-                    # Create a copy of the base image and convert to RGB
-                    myshop_img = self.myshop_base.copy().convert("RGB")
-                    
-                    # Replace magenta (255, 0, 255) with user's background color
-                    data = list(myshop_img.getdata())
-                    for i, pixel in enumerate(data):
-                        if pixel == (255, 0, 255):  # Magenta
-                            data[i] = self.background_color
-                    myshop_img.putdata(data)
+                    # Create a 105x105 image
+                    x = (105 - img.width) // 2
+                    y = (105 - img.height) // 2
                     
                     # Create mask for non-background pixels in the frame
                     mask = Image.new("L", img.size, 0)
@@ -3886,12 +3911,85 @@ class PaletteTool:
                         if pixel != self.background_color:
                             mask.putpixel((i % img.width, i // img.width), 255)
                     
-                    # Center the frame
-                    x = (105 - img.width) // 2
-                    y = (105 - img.height) // 2
-                    myshop_img.paste(img, (x, y), mask)
-                    myshop_img.save(myshop_path, "BMP", quality=24)
-                    return "MyShop (105x105)"
+                    # Determine which outputs to create based on cute_bg_option
+                    outputs = []
+                    
+                    # Handle regular background color output
+                    if self.cute_bg_option in ["no_cute_bg", "both"]:
+                        # Create image with user's background color
+                        regular_img = Image.new("RGB", (105, 105), self.background_color)
+                        regular_img.paste(img, (x, y), mask)
+                        regular_img.save(portrait_path.replace(".bmp", "_regular.bmp"), "BMP", quality=24)
+                        outputs.append("Portrait (105x105) with Background Color")
+                    
+                    # Handle cute background output
+                    if self.cute_bg_option in ["cute_bg", "both"]:
+                        if self.myshop_base is None:
+                            raise AttributeError("MyShop base image not loaded")
+                        
+                        # Create a copy of the base image and convert to RGB
+                        portrait_img = self.myshop_base.copy().convert("RGB")
+                        
+                        # Replace magenta (255, 0, 255) with user's background color
+                        data = list(portrait_img.getdata())
+                        for i, pixel in enumerate(data):
+                            if pixel == (255, 0, 255):  # Magenta
+                                data[i] = self.background_color
+                        portrait_img.putdata(data)
+                        
+                        # Paste the frame onto the base image
+                        portrait_img.paste(img, (x, y), mask)
+                        portrait_img.save(portrait_path, "BMP", quality=24)
+                        outputs.append("Portrait (105x105) with Cute BG")
+                    
+                    return " & ".join(outputs)
+                export_ops.append(save_portrait)
+            
+            # MyShop export (if selected)
+            if self.use_myshop_export:
+                def save_myshop():
+                    # Create a 135x135 image
+                    x = (135 - img.width) // 2
+                    y = (135 - img.height) // 2
+                    
+                    # Create mask for non-background pixels in the frame
+                    mask = Image.new("L", img.size, 0)
+                    for i, pixel in enumerate(img.getdata()):
+                        if pixel != self.background_color:
+                            mask.putpixel((i % img.width, i // img.width), 255)
+                    
+                    # Determine which outputs to create based on cute_bg_option
+                    outputs = []
+                    
+                    # Handle regular background color output
+                    if self.cute_bg_option in ["no_cute_bg", "both"]:
+                        # Create image with user's background color
+                        regular_img = Image.new("RGB", (135, 135), self.background_color)
+                        regular_img.paste(img, (x, y), mask)
+                        regular_img.save(myshop_path.replace(".bmp", "_regular.bmp"), "BMP", quality=24)
+                        outputs.append("MyShop (135x135) with Background Color")
+                    
+                    # Handle cute background output
+                    if self.cute_bg_option in ["cute_bg", "both"]:
+                        if self.myshop_base135 is None:
+                            raise AttributeError("MyShop base 135x135 image not loaded")
+                        
+                        # Create a copy of the base image and convert to RGB
+                        myshop_img = self.myshop_base135.copy().convert("RGB")
+                        
+                        # Replace magenta (255, 0, 255) with user's background color
+                        data = list(myshop_img.getdata())
+                        for i, pixel in enumerate(data):
+                            if pixel == (255, 0, 255):  # Magenta
+                                data[i] = self.background_color
+                        myshop_img.putdata(data)
+                        
+                        # Paste the frame onto the base image
+                        myshop_img.paste(img, (x, y), mask)
+                        myshop_img.save(myshop_path, "BMP", quality=24)
+                        outputs.append("MyShop (135x135) with Cute BG")
+                    
+                    return " & ".join(outputs)
                 export_ops.append(save_myshop)
             
             # Execute all export operations
@@ -4472,10 +4570,10 @@ class PaletteTool:
                             command=toggle_click_mode)
         mouse_btn.pack(side="right", padx=(4, 0))
         
-        # Help text label
+        # Help text label that updates dynamically
         help_label = tk.Label(sc_frame, text="Left click to save color\nRight click to apply color",
                             anchor="w", justify="left", fg="gray40")
-        help_label.pack(fill="x", padx=6, pady=(0,6))
+        help_label.pack(fill="x", padx=6)
         
         def _sc_save():
             from tkinter import filedialog
@@ -4551,30 +4649,7 @@ class PaletteTool:
             btn.bind("<Button-1>", lambda e, j=i: _handle_click(e, j))
             btn.bind("<Button-3>", lambda e, j=i: _handle_click(e, j))
             self._sc_btns.append(btn)
-        # Helper text under saved colors grid
-        try:
-            self._click_help_text = tk.StringVar()
-            def update_help_text():
-                if self.use_right_click:
-                    self._click_help_text.set("Left click to apply color\nRight click to save color")
-                else:
-                    self._click_help_text.set("Right click to apply color\nLeft click to save color")
-            update_help_text()  # Set initial text
-            tk.Label(sc_frame, textvariable=self._click_help_text,
-                    anchor="w", justify="left", fg="gray40").pack(fill="x", padx=6, pady=(0,6))
             
-            # Update help text when click mode changes
-            def update_help_text():
-                if self.use_right_click:
-                    self._click_help_text.set("Left click to apply color\nRight click to save color")
-                else:
-                    self._click_help_text.set("Right click to apply color\nLeft click to save color")
-            update_help_text()  # Set initial text
-            # No need for additional update here
-        except Exception:
-            pass
-
-
         _sc_refresh()
 
         def _clamp_int(val, lo, hi, default=0):
