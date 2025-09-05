@@ -40,29 +40,8 @@
 # 2.2 - Addtnl Hotfix
 - Fixed bug where selecting first job Fox + purse only would result in an evil green taking over the hair
 
-# 2.3 - Bug fixes
+# 2.3 - Dragon Pity Update
+- Fixed bug where editing third job dragon coat was not showing the correct indices 
+- Adjusted minimum window size to avoid some buttons disappearing when viewing third job lion/dragon
 - Added warning when editing hair or base 3rd job fashion as it cannot be implemented in game
 - Added supporting text for saved colors
-- Fixed bug where editing third job dragon coat was not showing the correct indexes 
-- Adjusted minimum window size to avoid some buttons disappearing when viewing third job lion/dragon
-
-# 3.0 - Restructure, Rebuild, Reform
-- Restructured folder so it's easier for players to read/use
-- Renamed .bat files for user QoL
-- Renamed previewer file to stop driving me insane with updating it
-- Updated License
-- Added frame labeling (and an option to disable it in the gears menu)
-- Added custom specified frame range displaying and options (as well as user tip on the side)
-- Added Option Button + rotating text to change Live Pal Editor's Saving Colors Mouse Options
-- Added BMP v24 export support
-- Added "User Choice Frame Export" so you can specify a frame to export as for pals, bmps, and pngs
-- Added "MyShop" and "Portrait" Exports for BMP to ease teams' efforts (both export functions
-    use your preferred BG color!) in addition to the base BMP export:
-        "MyShop" = MyShop Portrait Display (103x103 res w/ padding of chosen bg color)
-        "Portrait" = Regular RClick Illustration (105x105 res w/ corners of chosen bg color)
-- Expanded options for custom pal names to span up infinite numbers. Why? Why the hell not. It only 
-    accepted up to 2 before.
-- Made frame selected persist between "Single" and "Custom" modes
-- Made Expanded Custom Preview Options gear menu to automatically set preview mode to "Custom"
-- Fixed Paula Fashion Labeling
-- Fixed UI a bit to fit the window a bit better
