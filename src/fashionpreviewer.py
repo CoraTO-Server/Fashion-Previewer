@@ -2,7 +2,7 @@ import tkinter as tk
 import colorsys
 from tkinter import filedialog, messagebox, Scrollbar, Canvas, ttk
 import tkinter.colorchooser as colorchooser
-from PIL import Image, ImageTk
+from PIL import Image, ImageDraw, ImageTk
 import os
 import re
 import sys
@@ -94,7 +94,7 @@ class CustomPreviewDialog:
         
         # Frame count input
         count_frame = tk.Frame(main_frame)
-        count_frame.pack(fill="x", pady=5)
+        count_frame.pack(fill="x", pady=(0,3))
         
         tk.Label(count_frame, text="Number of Frames:").pack(side="left")
         
@@ -106,11 +106,11 @@ class CustomPreviewDialog:
         
         # Frame range inputs
         range_frame = tk.Frame(main_frame)
-        range_frame.pack(fill="x", pady=10)
+        range_frame.pack(fill="x", pady=0)
         
         # Start frame
         start_frame_container = tk.Frame(range_frame)
-        start_frame_container.pack(fill="x", pady=5)
+        start_frame_container.pack(fill="x", pady=2)
         tk.Label(start_frame_container, text="Start Frame:").pack(side="left")
         # Use initial_frame for start_frame if no specific start_frame was provided, convert to 1-based
         initial_start = self.initial_frame if start_frame == 0 else start_frame
@@ -121,7 +121,7 @@ class CustomPreviewDialog:
         
         # End frame
         end_frame_container = tk.Frame(range_frame)
-        end_frame_container.pack(fill="x", pady=5)
+        end_frame_container.pack(fill="x", pady=2)
         tk.Label(end_frame_container, text="End Frame:").pack(side="left")
         # Convert end frame to 1-based
         end_value = end_frame if end_frame is not None else max_frames - 1
@@ -132,7 +132,17 @@ class CustomPreviewDialog:
         
         # Export format toggle
         format_frame = tk.LabelFrame(main_frame, text="Export Format")
-        format_frame.pack(fill="x", pady=(5,10), padx=5)
+        format_frame.pack(fill="x", pady=(3,3), padx=5)
+        
+        # Palette format frame
+        palette_frame = tk.LabelFrame(main_frame, text="Palette Format")
+        palette_frame.pack(fill="x", pady=(0,5), padx=5)
+        
+        self.palette_format_var = tk.StringVar(value="pal")
+        tk.Radiobutton(palette_frame, text="PAL", variable=self.palette_format_var,
+                      value="pal").pack(side="left", padx=10, pady=2)
+        tk.Radiobutton(palette_frame, text="PNG Grid", variable=self.palette_format_var,
+                      value="png").pack(side="left", padx=10, pady=2)
         
         # Create left and right frames for horizontal layout
         left_frame = tk.Frame(format_frame)
@@ -214,14 +224,14 @@ class CustomPreviewDialog:
         
         # Frame label toggle
         label_frame = tk.Frame(main_frame)
-        label_frame.pack(fill="x", pady=2)  # Reduced padding
+        label_frame.pack(fill="x", pady=1)  # Minimal padding
         
         self.labels_var = tk.BooleanVar(value=self.show_labels)
         tk.Checkbutton(label_frame, text="Show Frame Numbers", variable=self.labels_var).pack(side="left")
         
         # User Choice Frame Export option
         choice_frame = tk.Frame(main_frame)
-        choice_frame.pack(fill="x", pady=(2,10))  # Reduced padding
+        choice_frame.pack(fill="x", pady=(1,5))  # Minimal padding
         
         # Initialize with parent's settings if available
         initial_choice = False
@@ -410,6 +420,7 @@ class CustomPreviewDialog:
                 self.parent.use_portrait_export = self.portrait_var.get()
                 self.parent.use_myshop_export = self.myshop_var.get()
                 self.parent.cute_bg_option = self.cute_bg_var.get()  # This is handled separately from the result tuple
+                self.parent.palette_format = self.palette_format_var.get()  # Update palette format
                 self.parent.show_frame_labels = self.labels_var.get()
                 self.parent.use_frame_choice = self.user_choice_var.get()
                 if self.user_choice_var.get():
@@ -422,7 +433,8 @@ class CustomPreviewDialog:
             # Include user's frame choice if enabled (keep as 1-based for result tuple)
             chosen_frame = int(self.frame_choice_var.get()) if self.user_choice_var.get() else None
             self.result = (frames, start_frame, end_frame, self.format_var.get(), self.labels_var.get(), 
-                         self.portrait_var.get(), self.myshop_var.get(), self.user_choice_var.get(), chosen_frame)
+                         self.portrait_var.get(), self.myshop_var.get(), self.user_choice_var.get(), chosen_frame,
+                         self.palette_format_var.get())
             if close:
                 self.dialog.destroy()
             
@@ -488,6 +500,7 @@ class PaletteTool:
         self.use_portrait_export = False  # Portrait mode (100x100)
         self.use_myshop_export = False  # MyShop mode (135x135)
         self.cute_bg_option = "no_cute_bg"  # Options: "no_cute_bg", "cute_bg", "both"
+        self.palette_format = "pal"  # Options: "pal", "png"
         self.show_frame_labels = True  # Whether to show frame numbers
         self.use_right_click = False  # False = Left click, True = Right click for color saving
         self.use_frame_choice = False  # Whether to use user-chosen frame for export
@@ -2132,7 +2145,7 @@ class PaletteTool:
         self.master.wait_window(dialog.dialog)
         
         if dialog.result is not None:
-            frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_myshop, use_choice, chosen_frame = dialog.result
+            frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_myshop, use_choice, chosen_frame, palette_format = dialog.result
             self.custom_frame_count = frame_count
             self.use_bmp_export = use_bmp
             self.use_portrait_export = use_portrait
@@ -4343,7 +4356,7 @@ class PaletteTool:
             self.update_image_display()
     
     def export_pal(self):
-        """Export all active palettes as one combined palette in VGA 24-bit format"""
+        """Export all active palettes as one combined palette in either VGA 24-bit format or PNG grid"""
         if not self.palette_layers:
             messagebox.showinfo("Notice", "No palette layers loaded.")
             return
@@ -4360,10 +4373,18 @@ class PaletteTool:
         root_dir = os.path.dirname(script_dir)
         initial_dir = os.path.join(root_dir, "exports", "custom_pals")
         
+        # Set file type based on palette format
+        if self.palette_format == "pal":
+            file_types = [("VGA 24-bit Palette Files", "*.pal")]
+            default_ext = ".pal"
+        else:  # png
+            file_types = [("PNG Files", "*.png")]
+            default_ext = ".png"
+        
         path = filedialog.asksaveasfilename(
-            defaultextension=".pal",
+            defaultextension=default_ext,
             initialdir=initial_dir,
-            filetypes=[("VGA 24-bit Palette Files", "*.pal")]
+            filetypes=file_types
         )
         if not path:
             return
@@ -4372,14 +4393,42 @@ class PaletteTool:
             # Get the merged palette (same logic as used for display/export)
             merged_palette = self.get_merged_palette()
             
-            # Ensure we have exactly 256 colors for VGA palette
-            while len(merged_palette) < 256:
-                merged_palette.append((0, 0, 0))  # Fill with black if needed
-            
-            # Write VGA 24-bit format: each color as 3 bytes (R, G, B) in sequence
-            with open(path, "wb") as f:
-                for r, g, b in merged_palette[:256]:  # Ensure exactly 256 colors
-                    f.write(bytes([r, g, b]))
+            if self.palette_format == "pal":
+                # Ensure we have exactly 256 colors for VGA palette
+                while len(merged_palette) < 256:
+                    merged_palette.append((0, 0, 0))  # Fill with black if needed
+                
+                # Write VGA 24-bit format: each color as 3 bytes (R, G, B) in sequence
+                with open(path, "wb") as f:
+                    for r, g, b in merged_palette[:256]:  # Ensure exactly 256 colors
+                        f.write(bytes([r, g, b]))
+            else:  # PNG grid
+                # Create a 503x503 image (16x16 grid where each color is ~31.4375x31.4375)
+                grid_img = Image.new("RGB", (503, 503), (0, 0, 0))
+                cell_size = 503 // 16  # This gives us 31 pixels with some remainder
+                
+                # Fill in the colors in a 16x16 grid
+                for i, color in enumerate(merged_palette):
+                    if i >= 256:  # Maximum 256 colors in 16x16 grid
+                        break
+                    
+                    # Calculate position in 16x16 grid
+                    grid_x = i % 16
+                    grid_y = i // 16
+                    
+                    # Calculate pixel ranges for this cell, handling the remainder
+                    x_start = (grid_x * 503) // 16
+                    x_end = ((grid_x + 1) * 503) // 16
+                    y_start = (grid_y * 503) // 16
+                    y_end = ((grid_y + 1) * 503) // 16
+                    
+                    # Fill the exact pixel range for this cell
+                    for px in range(x_start, x_end):
+                        for py in range(y_start, y_end):
+                            grid_img.putpixel((px, py), color)
+                
+                # Save the PNG
+                grid_img.save(path, "PNG")
             
             # Show which layers were combined
             layer_names = [layer.name for layer in active_layers]
