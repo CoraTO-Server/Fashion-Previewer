@@ -35,6 +35,7 @@ Thank you for your hard work and contributions to bring this tool to life for th
 [Join our Trickster Development Discord and get a central repository for live support, tools, 
    information, updates on releases, and more!](https://discord.gg/d6h8brNwYY)
 
+![PalEditor]("AAA Tutorials/paleditor.gif")
 
 ## Features
 
