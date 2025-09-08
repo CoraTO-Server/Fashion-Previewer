@@ -1,4 +1,4 @@
-# Fashion Previewer v3.2
+# Fashion Previewer v3.1
 
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!
@@ -42,31 +42,16 @@ Thank you for your hard work and contributions to bring this tool to life for th
 - **Fashion Customization:** Apply different fashion palettes
 - **Hair Customization:** Apply different hair palettes
 - **3rd Job Base Fashion:** Special handling for 3rd job characters
-- **Custom Palettes:** Add your own custom palettes in `exports/custom_pals/`
+- **Custom Palettes:** Add your own custom palettes in `src/exports/custom_pals/`
 - **Export Options:** Export as transparent PNG, backgrounded BMP, or combined palette
 - **Multiple Preview Modes:** Single frame, all frames, or a custom range
 - **Live Pal Editing**: Single or multiple indexes with sliders and saved colors
-- **Key Commands**: Commands to make your life simple and efficient!
-
-### Keyboard Shortcuts
-
-Quick Actions:
-- **B**: Change background color
-- **E**: Export with current options
-- **Shift+E**: Export all frames
-- **O**: Open custom frame options
-- **P**: Open palette editor
-- **Shift+P**: Export palette
-- **R**: Reset to original
-- **D**: Debug info
-- **V**: Toggle view mode (single/custom)
-
 
 ## Custom Palette Format
 
-- **Fashion palettes:** `chr###_w#.pal` (e.g., `chr001_w47.pal`)
+- **Fashion palettes:** `chr###_w##.pal` (e.g., `chr001_w47.pal`)
 - **Hair palettes:** `chr###_#.pal` (e.g., `chr001_5.pal`)
-- Place custom palettes in the `exports/custom_pals/` folder
+- Place custom palettes in the `src/exports/custom_pals/` folder
 
 ## Quick Start
 
@@ -171,8 +156,8 @@ FashionPreviewer/
    - Make sure Python is installed and added to PATH
 
 3. **Missing Required Folders**
-   - Ensure `src/rawbmps/` folder exists with character images
-   - Ensure `src/pals/` folder exists with fashion and hair palettes
+   - Ensure `rawbmps/` folder exists with character images
+   - Ensure `pals/` folder exists with fashion and hair palettes
    - Check that folder names match exactly (case-sensitive)
 
 4. **Python Not in PATH**
@@ -228,9 +213,7 @@ FashionPreviewer/
 
 ### "Fixed" Bugs
 
-They may be back. Or not properly fixed. We don't know. Better safe than sorry.
-
-(These *should* be fixed in v2.1+)
+(These *should* be fixed in v2.1+ but better safe than sorry)
 
 1. **Sliders move on their own sometimes**
    - Program's haunted (vibecoded); needs a priest (real coder)
@@ -240,12 +223,12 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
    - Stop trying to make black move it's not going to like it at all, we don't
       know why--please be nice this is vibecoded and free :(
 
-(These *should* be fixed in v2.2+)
+(These *should* be fixed in v2.2+ but better safe than sorry)
 
 3. **Fox First Job fashion (purse) shows green hair when selected**
    - UPDATE ALREADY!!!!!!!!!! (pls)
 
-(These *should* be fixed in v2.3+)
+(These *should* be fixed in v2.3+ but better safe than sorry)
 
 4. **Third Job Dragon Fashion doesn't show the right indexes**
    - Should be fixed in v2.3
@@ -253,24 +236,13 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
 5. **Third Job Dragon Fashion sometimes has buttons disappear**
    - Should be fixed in v2.3
 
-(These *should* be fixed in v3.0+)
+(These *should* be fixed in v3.0+ but better safe than sorry)
 
 6. **Paula fashion is improperly labeled!**
    - Should be fixed in v3.0
 
 7. **Custom pals only support 2 numbers!**
    - Goes infinitely in v3.0 now
-
-(These *should* be fixed in v3.2+)
-
-8. **Gloves, Satchels, and Shoes are all being sorted together for Bard**
-   - Should be fixed in v3.2
-
-9. **BMP BG Style options don't ungrey when BMP is selected**
-   - Should be fixed in v3.2
-
-10. **Scroll wheel doesn't work with the scroll boxes**
-   - Should be fixed in v3.2
 
 
 ### Debug Information

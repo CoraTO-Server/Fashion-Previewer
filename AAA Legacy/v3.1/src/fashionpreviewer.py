@@ -64,11 +64,11 @@ class CustomPreviewDialog:
         if isinstance(parent, PaletteTool):
             self.use_bmp = parent.use_bmp_export
             self.use_portrait = parent.use_portrait_export
+            self.use_myshop = parent.use_myshop_export
             self.show_labels = parent.show_frame_labels
-            self.cute_bg_option = parent.cute_bg_option  # Initialize cute background option from parent
         else:
             self.use_portrait = False
-            self.cute_bg_option = "no_cute_bg"  # Default value for non-PaletteTool parents
+            self.use_myshop = False
         
         # Determine the widget parent for the dialog
         widget_parent = parent.master if isinstance(parent, PaletteTool) else parent
@@ -76,7 +76,7 @@ class CustomPreviewDialog:
         # Create dialog window
         self.dialog = tk.Toplevel(widget_parent)
         self.dialog.title("Custom Preview Settings")
-        self.dialog.geometry("400x420")  # Increased height for button space
+        self.dialog.geometry("400x420")  # Increased width for side-by-side layout
         self.dialog.transient(widget_parent)
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
@@ -84,25 +84,17 @@ class CustomPreviewDialog:
         # Center the dialog
         self.dialog.geometry("+%d+%d" % (widget_parent.winfo_rootx() + 50, widget_parent.winfo_rooty() + 50))
         
-        # Container frame for content and buttons
-        container = tk.Frame(self.dialog)
-        container.pack(fill="both", expand=True)
-        
-        # Main frame for content
-        main_frame = tk.Frame(container)
-        main_frame.pack(fill="both", padx=20, pady=(10,0))
+        # Main frame
+        main_frame = tk.Frame(self.dialog)
+        main_frame.pack(fill="both", padx=20, pady=10)
         
         # Title
         title_label = tk.Label(main_frame, text="Custom Frame Settings", font=("Arial", 12, "bold"))
-        title_label.pack(pady=(0, 2))  # Reduced padding
-        
-        # Total frames info
-        total_frames_label = tk.Label(main_frame, text=f"Total Available Frames: {max_frames}", font=("Arial", 10))
-        total_frames_label.pack(pady=(0, 5))
+        title_label.pack(pady=(0, 10))
         
         # Frame count input
         count_frame = tk.Frame(main_frame)
-        count_frame.pack(fill="x", pady=(0,2))  # Reduced padding
+        count_frame.pack(fill="x", pady=(0,3))
         
         tk.Label(count_frame, text="Number of Frames:").pack(side="left")
         
@@ -110,37 +102,41 @@ class CustomPreviewDialog:
         self.frame_entry = tk.Entry(count_frame, textvariable=self.frame_var, width=10)
         self.frame_entry.pack(side="left", padx=(5, 0))
         
+        tk.Label(count_frame, text=f"(max: {max_frames})").pack(side="left", padx=(5, 0))
+        
         # Frame range inputs
         range_frame = tk.Frame(main_frame)
         range_frame.pack(fill="x", pady=0)
         
         # Start frame
         start_frame_container = tk.Frame(range_frame)
-        start_frame_container.pack(fill="x", pady=1)  # Reduced padding
+        start_frame_container.pack(fill="x", pady=2)
         tk.Label(start_frame_container, text="Start Frame:").pack(side="left")
         # Use initial_frame for start_frame if no specific start_frame was provided, convert to 1-based
         initial_start = self.initial_frame if start_frame == 0 else start_frame
         self.start_var = tk.StringVar(value=str(initial_start + 1))  # Convert to 1-based
         self.start_entry = tk.Entry(start_frame_container, textvariable=self.start_var, width=10)
         self.start_entry.pack(side="left", padx=(5, 0))
+        tk.Label(start_frame_container, text=f"(min: 1, max: {max_frames})", fg="gray40").pack(side="left", padx=(5, 0))
         
         # End frame
         end_frame_container = tk.Frame(range_frame)
-        end_frame_container.pack(fill="x", pady=1)  # Reduced padding
+        end_frame_container.pack(fill="x", pady=2)
         tk.Label(end_frame_container, text="End Frame:").pack(side="left")
         # Convert end frame to 1-based
         end_value = end_frame if end_frame is not None else max_frames - 1
         self.end_var = tk.StringVar(value=str(end_value + 1))  # Convert to 1-based
         self.end_entry = tk.Entry(end_frame_container, textvariable=self.end_var, width=10)
         self.end_entry.pack(side="left", padx=(5, 0))
+        tk.Label(end_frame_container, text=f"(min: 1, max: {max_frames})", fg="gray40").pack(side="left", padx=(5, 0))
         
         # Export format toggle
         format_frame = tk.LabelFrame(main_frame, text="Export Format")
-        format_frame.pack(fill="x", pady=(2,2), padx=5)  # Reduced padding
+        format_frame.pack(fill="x", pady=(3,3), padx=5)
         
         # Palette format frame
         palette_frame = tk.LabelFrame(main_frame, text="Palette Format")
-        palette_frame.pack(fill="x", pady=(0,2), padx=5)  # Reduced padding
+        palette_frame.pack(fill="x", pady=(0,5), padx=5)
         
         self.palette_format_var = tk.StringVar(value="pal")
         tk.Radiobutton(palette_frame, text="PAL", variable=self.palette_format_var,
@@ -164,11 +160,13 @@ class CustomPreviewDialog:
                 parent.update_export_button_text()
                 parent.master.update()  # Force update of the main window
             
-            # Portrait mode is always enabled
-            self.portrait_checkbox.configure(state="normal")
-            
-            # Update BG Style options based on Portrait mode
-            self.update_bg_style_state()
+            # Enable/disable BMP-specific options
+            state = "normal" if is_bmp else "disabled"
+            self.portrait_checkbox.configure(state=state)
+            self.myshop_checkbox.configure(state=state)
+            for child in self.cute_bg_frame.winfo_children():
+                if isinstance(child, tk.Radiobutton):
+                    child.configure(state=state)
         self.format_var.trace_add("write", on_format_change)
         
         # Left side - Format options and checkboxes
@@ -177,43 +175,51 @@ class CustomPreviewDialog:
         tk.Radiobutton(left_frame, text="Background BMP", variable=self.format_var, 
                       value=True).pack(anchor="w", padx=10, pady=2)
         
-        # Portrait checkbox
+        # Portrait checkbox for BMP export
         self.portrait_var = tk.BooleanVar(value=self.use_portrait)
         self.portrait_checkbox = tk.Checkbutton(left_frame, text="Portrait (105x105)", 
-                                              variable=self.portrait_var,
-                                              command=self.update_bg_style_state)
+                                              variable=self.portrait_var, state="disabled")
         self.portrait_checkbox.pack(anchor="w", padx=25, pady=2)
         
+        # MyShop checkbox for BMP export
+        self.myshop_var = tk.BooleanVar(value=self.use_myshop)
+        self.myshop_checkbox = tk.Checkbutton(left_frame, text="MyShop (135x135)", 
+                                            variable=self.myshop_var, state="disabled")
+        self.myshop_checkbox.pack(anchor="w", padx=25, pady=2)
         
-        # Right side - BMP BG Style options
-        self.cute_bg_var = tk.StringVar(value=self.cute_bg_option)  # Use the stored option
+        # Right side - Cute BG options
+        cute_bg_label = tk.Label(right_frame, text="BMP BG Style:")
+        cute_bg_label.pack(anchor="w", pady=(15,3))
+        
+        # Cute BG options frame
         self.cute_bg_frame = tk.Frame(right_frame)
-        self.cute_bg_frame.pack(anchor="w", padx=10)
+        self.cute_bg_frame.pack(anchor="w")
         
-        # Create radio buttons with initial state based on portrait mode
-        initial_state = "normal" if self.portrait_var.get() else "disabled"
+        self.cute_bg_var = tk.StringVar(value="no_cute_bg")
         tk.Radiobutton(self.cute_bg_frame, text="No Cute BG", variable=self.cute_bg_var,
-                      value="no_cute_bg", state=initial_state).pack(side="top", anchor="w", pady=0)
+                      value="no_cute_bg", state="disabled").pack(side="top", anchor="w", pady=0)
         tk.Radiobutton(self.cute_bg_frame, text="Cute BG", variable=self.cute_bg_var,
-                      value="cute_bg", state=initial_state).pack(side="top", anchor="w", pady=0)
+                      value="cute_bg", state="disabled").pack(side="top", anchor="w", pady=0)
         tk.Radiobutton(self.cute_bg_frame, text="Both", variable=self.cute_bg_var,
-                      value="both", state=initial_state).pack(side="top", anchor="w", pady=0)
+                      value="both", state="disabled").pack(side="top", anchor="w", pady=0)
         
         # Update parent's settings when any option changes
         def update_parent_settings(*args):
             if isinstance(self.parent, PaletteTool):
                 self.parent.use_bmp_export = self.format_var.get()
                 self.parent.use_portrait_export = self.portrait_var.get()
-                self.parent.cute_bg_option = self.cute_bg_var.get()
+                self.parent.use_myshop_export = self.myshop_var.get()
                 self.parent.show_frame_labels = self.labels_var.get()
-                print(f"Dialog settings updated: BMP={self.format_var.get()}, Portrait={self.portrait_var.get()}, Cute BG={self.cute_bg_var.get()}")
+                print(f"Dialog settings updated: BMP={self.format_var.get()}, Portrait={self.portrait_var.get()}, MyShop={self.myshop_var.get()}")
                 
         # Update checkbox states when format changes
         def update_checkbox_states(*args):
             state = "normal" if self.format_var.get() else "disabled"
             self.portrait_checkbox.config(state=state)
+            self.myshop_checkbox.config(state=state)
             if not self.format_var.get():
                 self.portrait_var.set(False)
+                self.myshop_var.set(False)
             update_parent_settings()
         
         # Frame label toggle
@@ -225,7 +231,7 @@ class CustomPreviewDialog:
         
         # User Choice Frame Export option
         choice_frame = tk.Frame(main_frame)
-        choice_frame.pack(fill="x", pady=(1,2))  # Minimal padding
+        choice_frame.pack(fill="x", pady=(1,5))  # Minimal padding
         
         # Initialize with parent's settings if available
         initial_choice = False
@@ -251,28 +257,18 @@ class CustomPreviewDialog:
         self.frame_choice_container.pack(side="left", padx=(10,0))
         
         tk.Label(self.frame_choice_container, text="Frame:").pack(side="left")
-        self.frame_choice_var = tk.StringVar(value=str(initial_frame))  # Already 1-based
+        self.frame_choice_var = tk.StringVar(value=str(initial_frame + 1))  # Convert to 1-based
         self.frame_choice_entry = tk.Entry(self.frame_choice_container, 
-                                        textvariable=self.frame_choice_var,
-                                        width=5)
+                                         textvariable=self.frame_choice_var,
+                                         width=5)
         self.frame_choice_entry.pack(side="left", padx=(5,5))
         
-        # Add validation to prevent unexpected changes
-        def validate_frame_choice(*args):
-            try:
-                value = int(self.frame_choice_var.get())
-                if isinstance(self.parent, PaletteTool):
-                    max_frame = len(self.parent.character_images.get(self.parent.current_character, []))
-                    if value < 1:
-                        self.frame_choice_var.set("1")
-                    elif value > max_frame:
-                        self.frame_choice_var.set(str(max_frame))
-            except ValueError:
-                # If not a valid number, don't change anything
-                pass
-            
-        self.frame_choice_var.trace_add("write", validate_frame_choice)
-        
+        # Show frame range
+        if isinstance(self.parent, PaletteTool):
+            max_frame = len(self.parent.character_images.get(self.parent.current_character, [])) - 1
+            tk.Label(self.frame_choice_container, 
+                    text=f"(min: 0, max: {max_frame})",
+                    fg="gray40").pack(side="left")
         
         # Show/hide frame choice based on initial state
         if initial_choice:
@@ -283,27 +279,17 @@ class CustomPreviewDialog:
         # Add traces for immediate updates
         self.format_var.trace_add("write", update_checkbox_states)
         self.portrait_var.trace_add("write", update_parent_settings)
+        self.myshop_var.trace_add("write", update_parent_settings)
         self.labels_var.trace_add("write", update_parent_settings)
         
-        # Validation message
+        # Big-ass OK button right after the checkbox
+        self.ok_button = tk.Button(main_frame, text="OK", command=self.ok_clicked, 
+                                 width=20, height=2, font=("Arial", 10))
+        self.ok_button.pack(pady=(5,10))  # Reduced top padding
+        
+        # Validation message at the very bottom
         self.validation_label = tk.Label(main_frame, text="", fg="red", wraplength=250)
-        self.validation_label.pack(pady=5)
-        
-        # Button frame in the middle
-        button_frame = tk.Frame(main_frame)
-        button_frame.pack(fill="x", pady=10)
-        
-        # Center container for buttons
-        button_container = tk.Frame(button_frame)
-        button_container.pack(anchor="center")
-        
-        # OK button (wider)
-        self.ok_button = tk.Button(button_container, text="OK", command=self.ok_clicked, width=12)
-        self.ok_button.pack(side="left", padx=5)
-        
-        # Cancel button
-        cancel_button = tk.Button(button_container, text="Cancel", command=self.cancel_clicked, width=8)
-        cancel_button.pack(side="left", padx=5)
+        self.validation_label.pack(side="bottom", pady=5)
         
         # Bind validation to input changes
         self.frame_var.trace_add("write", lambda *args: self.validate_inputs())
@@ -364,15 +350,6 @@ class CustomPreviewDialog:
         self.validation_label.config(text=message)
         self.ok_button.config(state="disabled")
     
-    def update_bg_style_state(self):
-        """Enable/disable BG Style options based on Portrait mode"""
-        state = "normal" if self.portrait_var.get() else "disabled"
-        for child in self.cute_bg_frame.winfo_children():
-            if isinstance(child, tk.Radiobutton):
-                child.configure(state=state)
-        if not self.portrait_var.get():
-            self.cute_bg_var.set("no_cute_bg")  # Reset to default when disabled
-    
     def toggle_frame_choice(self):
         """Toggle visibility of frame choice entry"""
         if self.user_choice_var.get():
@@ -399,14 +376,13 @@ class CustomPreviewDialog:
             # Validate frame choice if enabled
             if self.user_choice_var.get():
                 try:
-                    # Get the frame number from user input (1-based)
-                    chosen_frame = int(self.frame_choice_var.get())
+                    # Convert from 1-based to 0-based for validation
+                    chosen_frame = int(self.frame_choice_var.get()) - 1
                     if isinstance(self.parent, PaletteTool):
-                        max_frame = len(self.parent.character_images.get(self.parent.current_character, []))
-                        if chosen_frame < 1 or chosen_frame > max_frame:
-                            messagebox.showerror("Invalid Input", f"Frame number must be between 1 and {max_frame}.")
+                        max_frame = len(self.parent.character_images.get(self.parent.current_character, [])) - 1
+                        if chosen_frame < 0 or chosen_frame > max_frame:
+                            messagebox.showerror("Invalid Input", f"Frame number must be between 1 and {max_frame + 1}.")
                             return
-                        # Keep as 1-based, don't convert to 0-based
                 except ValueError:
                     messagebox.showerror("Invalid Input", "Please enter a valid frame number.")
                     return
@@ -442,12 +418,13 @@ class CustomPreviewDialog:
             if isinstance(self.parent, PaletteTool):
                 self.parent.use_bmp_export = self.format_var.get()
                 self.parent.use_portrait_export = self.portrait_var.get()
+                self.parent.use_myshop_export = self.myshop_var.get()
                 self.parent.cute_bg_option = self.cute_bg_var.get()  # This is handled separately from the result tuple
                 self.parent.palette_format = self.palette_format_var.get()  # Update palette format
                 self.parent.show_frame_labels = self.labels_var.get()
                 self.parent.use_frame_choice = self.user_choice_var.get()
                 if self.user_choice_var.get():
-                    self.parent.chosen_frame = int(self.frame_choice_var.get())  # Keep as 1-based
+                    self.parent.chosen_frame = int(self.frame_choice_var.get()) - 1  # Convert to 0-based
                 # Apply immediate frame settings for custom preview
                 self.parent.custom_frame_count = frames
                 if not self.user_choice_var.get():
@@ -456,8 +433,8 @@ class CustomPreviewDialog:
             # Include user's frame choice if enabled (keep as 1-based for result tuple)
             chosen_frame = int(self.frame_choice_var.get()) if self.user_choice_var.get() else None
             self.result = (frames, start_frame, end_frame, self.format_var.get(), self.labels_var.get(), 
-                         self.portrait_var.get(), self.user_choice_var.get(), chosen_frame,
-                         self.palette_format_var.get(), self.cute_bg_var.get())
+                         self.portrait_var.get(), self.myshop_var.get(), self.user_choice_var.get(), chosen_frame,
+                         self.palette_format_var.get())
             if close:
                 self.dialog.destroy()
             
@@ -521,24 +498,32 @@ class PaletteTool:
         self.custom_start_index = 0
         self.use_bmp_export = False  # False = PNG, True = BMP
         self.use_portrait_export = False  # Portrait mode (100x100)
+        self.use_myshop_export = False  # MyShop mode (135x135)
         self.cute_bg_option = "no_cute_bg"  # Options: "no_cute_bg", "cute_bg", "both"
         self.palette_format = "pal"  # Options: "pal", "png"
         self.show_frame_labels = True  # Whether to show frame numbers
         self.use_right_click = False  # False = Left click, True = Right click for color saving
         self.use_frame_choice = False  # Whether to use user-chosen frame for export
-        self.chosen_frame = 1  # User's chosen frame for export (1-based)
-        self.background_color = (255, 255, 255)  # Default background color (white)
-        
-        # Get script directory for relative paths
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.chosen_frame = 0  # User's chosen frame for export
         
         # Load base images
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Load regular MyShop base image (105x105)
         myshop_base_path = os.path.join(script_dir, "rawbmps", "myshop_base.bmp")
         try:
             self.myshop_base = Image.open(myshop_base_path)
         except Exception as e:
             print(f"Failed to load MyShop base image: {e}")
             self.myshop_base = None
+            
+        # Load 135x135 MyShop base image
+        myshop_base135_path = os.path.join(script_dir, "rawbmps", "myshop_base135.bmp")
+        try:
+            self.myshop_base135 = Image.open(myshop_base135_path)
+        except Exception as e:
+            print(f"Failed to load MyShop base 135x135 image: {e}")
+            self.myshop_base135 = None
         
         # Available data
         self.available_characters = []
@@ -951,63 +936,8 @@ class PaletteTool:
                 print("Failed to refresh:", e)
 
 
-    def register_focusable(self, widget, tag=None):
-        """Register a widget as focusable and store its tag for quick access"""
-        self.focusable_widgets.append(widget)
-        if tag:
-            if not hasattr(self, 'widget_tags'):
-                self.widget_tags = {}
-            self.widget_tags[tag] = widget
-    
-    def navigate_widgets(self, direction):
-        """Handle up/down arrow key navigation"""
-        current = self.master.focus_get()
-        if current in self.focusable_widgets:
-            current_idx = self.focusable_widgets.index(current)
-            if direction == "up":
-                next_idx = (current_idx - 1) % len(self.focusable_widgets)
-            else:  # down
-                next_idx = (current_idx + 1) % len(self.focusable_widgets)
-            self.focusable_widgets[next_idx].focus_set()
-    
-    def handle_enter(self):
-        """Handle Enter key press for selection"""
-        current = self.master.focus_get()
-        if current:
-            if isinstance(current, (tk.Radiobutton, tk.Checkbutton)):
-                current.invoke()  # Simulate click
-            elif isinstance(current, tk.Button):
-                current.invoke()  # Simulate button click
-    
-    def toggle_view_mode(self):
-        """Toggle between single and custom view modes"""
-        current_mode = self.preview_var.get()
-        if current_mode == "single":
-            self.preview_var.set("custom")
-        elif current_mode == "custom":
-            self.preview_var.set("single")
-        self.on_preview_mode_change()
-    
-    
     def create_ui(self):
         """Create the main UI"""
-        # List to store focusable widgets in order
-        self.focusable_widgets = []
-        self.widget_tags = {}
-        
-        
-        # Bind keyboard shortcuts
-        self.master.bind("b", lambda e: self.pick_background_color())
-        self.master.bind("e", lambda e: self.export_background_bmp())
-        self.master.bind("E", lambda e: self.export_all_frames())  # Shift+E
-        self.master.bind("p", lambda e: self.open_live_palette_editor())
-        self.master.bind("P", lambda e: self.export_pal())  # Shift+P
-        self.master.bind("r", lambda e: self.reset_to_original())
-        self.master.bind("d", lambda e: self.debug_info())
-        self.master.bind("v", lambda e: self.toggle_view_mode())
-        self.master.bind("o", lambda e: self.open_custom_settings())
-        
-        
         # Set window size and make it resizable
         self.master.geometry("900x650")
         self.master.resizable(True, True)
@@ -1119,15 +1049,6 @@ class PaletteTool:
         self.v_scroll.config(command=self.canvas.yview)
         self.canvas.bind("<Configure>", self.on_canvas_configure)
         
-        # Add mouse wheel support
-        def _on_mousewheel(event):
-            if event.state & 0x4:  # Check if Control is pressed
-                return  # Don't scroll if Control is pressed (let it handle zoom)
-            self.canvas.yview_scroll(-1 * (event.delta // 120), "units")
-        self.canvas.bind("<MouseWheel>", _on_mousewheel)  # Windows
-        self.canvas.bind("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))  # Linux
-        self.canvas.bind("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))   # Linux
-        
         self.img_id = None
         self.tk_image = None
         
@@ -1135,70 +1056,22 @@ class PaletteTool:
         control_frame = tk.Frame(content_frame)
         control_frame.pack(side="right", fill="y", padx=(10, 0))
         
-        # Create PanedWindow for resizable sections
-        self.paned = tk.PanedWindow(control_frame, orient="vertical", sashwidth=4, sashrelief="raised")
-        self.paned.pack(fill="both", expand=True)
-        # Set initial sash position
-        self.paned.after_idle(lambda: self.paned.sash_place(0, 0, 120))
-        
         # 3rd Job Base Fashion section (only for 3rd jobs)
         self.third_job_frame = tk.LabelFrame(control_frame, text="3rd Job Base Fashion")
-        # Initially hidden, will be shown when needed
-        self.third_job_frame.configure(width=300)
+        self.third_job_frame.pack(fill="x", pady=(0, 5))
+        self.third_job_frame.configure(height=120, width=300)
         
-        # Hair section
-        self.hair_frame = tk.LabelFrame(self.paned, text="Hair")
-        self.hair_frame.configure(width=300)
-        self.paned.add(self.hair_frame)
-
+        # Hair section - reduced height to make room for 3rd job base fashion
+        self.hair_frame = tk.LabelFrame(control_frame, text="Hair")
+        self.hair_frame.pack(fill="x", pady=(0, 5))
+        self.hair_frame.configure(height=100, width=300)
         
-        # Create scrollable frame for hair palettes - force very small height
-        self.hair_canvas = tk.Canvas(self.hair_frame, height=10)
-        self.hair_scrollbar = tk.Scrollbar(self.hair_frame, orient="vertical", command=self.hair_canvas.yview)
-        self.hair_scrollable_frame = tk.Frame(self.hair_canvas)
-        
-        # Configure hair canvas
-        self.hair_canvas.configure(yscrollcommand=self.hair_scrollbar.set)
-        
-        # Update scroll region when frame size changes
-        def update_hair_scroll_region(event):
-            self.hair_canvas.configure(scrollregion=self.hair_canvas.bbox("all"))
-        self.hair_scrollable_frame.bind("<Configure>", update_hair_scroll_region)
-        
-        # Create window in canvas
-        self.hair_canvas.create_window((0, 0), window=self.hair_scrollable_frame, anchor="nw")
-        
-        # Add mouse wheel support for hair palette
-        def _on_hair_mousewheel(event):
-            if event.state & 0x4:  # Check if Control is pressed
-                return  # Don't scroll if Control is pressed
-            # Get the scrollbar position info
-            first, last = self.hair_scrollbar.get()
-            if first != 0.0 or last != 1.0:  # Only scroll if scrollbar is active
-                self.hair_canvas.yview_scroll(-1 * (event.delta // 120), "units")
-        # Bind scroll events to both canvas and frame to ensure it works everywhere in the hair section
-        self.hair_canvas.bind("<MouseWheel>", _on_hair_mousewheel)
-        self.hair_scrollable_frame.bind("<MouseWheel>", _on_hair_mousewheel)
-        def _on_hair_linux_scroll(direction):
-            first, last = self.hair_scrollbar.get()
-            if first != 0.0 or last != 1.0:  # Only scroll if scrollbar is active
-                self.hair_canvas.yview_scroll(direction, "units")
-        # Bind Linux scroll events to both canvas and frame
-        for widget in (self.hair_canvas, self.hair_scrollable_frame):
-            widget.bind("<Button-4>", lambda e: _on_hair_linux_scroll(-1))
-            widget.bind("<Button-5>", lambda e: _on_hair_linux_scroll(1))
-        
-        # Pack hair canvas and scrollbar
-        self.hair_canvas.pack(side="left", fill="both", expand=True)
-        self.hair_scrollbar.pack(side="right", fill="y")
-        
-        # Fashion section with scrollbar
-        self.fashion_frame = tk.LabelFrame(self.paned, text="Fashion")
-        self.fashion_frame.configure(height=360, width=300)
-        self.paned.add(self.fashion_frame)
+        # Fashion section with scrollbar - reduced height to make room for 3rd job base fashion
+        self.fashion_frame = tk.LabelFrame(control_frame, text="Fashion")
+        self.fashion_frame.pack(fill="both", expand=True, pady=(0, 5))
         
         # Create scrollable frame for fashion palettes - reduced height
-        self.fashion_canvas = tk.Canvas(self.fashion_frame, height=360, width=300)
+        self.fashion_canvas = tk.Canvas(self.fashion_frame, height=250, width=300)
         self.fashion_scrollbar = tk.Scrollbar(self.fashion_frame, orient="vertical", command=self.fashion_canvas.yview)
         self.fashion_scrollable_frame = tk.Frame(self.fashion_canvas)
         
@@ -1210,33 +1083,13 @@ class PaletteTool:
         self.fashion_canvas.create_window((0, 0), window=self.fashion_scrollable_frame, anchor="nw")
         self.fashion_canvas.configure(yscrollcommand=self.fashion_scrollbar.set)
         
-        # Add mouse wheel support for fashion palette
-        def _on_fashion_mousewheel(event):
-            if event.state & 0x4:  # Check if Control is pressed
-                return  # Don't scroll if Control is pressed
-            # Get the scrollbar position info
-            first, last = self.fashion_scrollbar.get()
-            if first != 0.0 or last != 1.0:  # Only scroll if scrollbar is active
-                self.fashion_canvas.yview_scroll(-1 * (event.delta // 120), "units")
-        # Bind scroll events to both canvas and frame to ensure it works everywhere in the fashion section
-        self.fashion_canvas.bind("<MouseWheel>", _on_fashion_mousewheel)
-        self.fashion_scrollable_frame.bind("<MouseWheel>", _on_fashion_mousewheel)
-        def _on_fashion_linux_scroll(direction):
-            first, last = self.fashion_scrollbar.get()
-            if first != 0.0 or last != 1.0:  # Only scroll if scrollbar is active
-                self.fashion_canvas.yview_scroll(direction, "units")
-        # Bind Linux scroll events to both canvas and frame
-        for widget in (self.fashion_canvas, self.fashion_scrollable_frame):
-            widget.bind("<Button-4>", lambda e: _on_fashion_linux_scroll(-1))
-            widget.bind("<Button-5>", lambda e: _on_fashion_linux_scroll(1))
-        
         self.fashion_canvas.pack(side="left", fill="both", expand=True)
         self.fashion_scrollbar.pack(side="right", fill="y")
-
-        # Control buttons at the bottom
+        
+        # Control buttons
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill="x", pady=(10, 0))
-
+        
         # Navigation buttons
         nav_frame = tk.Frame(button_frame)
         nav_frame.pack(side="left", padx=(0, 10))
@@ -1337,9 +1190,6 @@ class PaletteTool:
             self.update_third_job_section()
             self.update_hair_section()
             self.update_fashion_section()
-            
-            # Reset scroll positions
-            self.reset_scroll_positions()
             
             # Load palettes and update display immediately for all characters
             self.load_palettes()
@@ -1606,9 +1456,6 @@ class PaletteTool:
             self.update_hair_section()
             self.update_fashion_section()
             
-            # Reset scroll positions
-            self.reset_scroll_positions()
-            
             # Load palettes and update display immediately for 3rd job characters
             self.load_palettes()
             # Update zoom combo state based on new character's frame count
@@ -1631,14 +1478,10 @@ class PaletteTool:
             widget.destroy()
         
         if not hasattr(self, 'current_character') or not self.current_character:
-            self.third_job_frame.pack_forget()
-            # Hide third job frame but maintain window layout
             return
-        
+            
         char_id = self.current_character
         if char_id not in CHARACTER_MAPPING:
-            self.third_job_frame.pack_forget()
-            # Hide third job frame but maintain window layout
             return
         
         char_info = CHARACTER_MAPPING[char_id]
@@ -1649,7 +1492,7 @@ class PaletteTool:
             return
         else:
             # Show the 3rd job frame for 3rd jobs
-            self.third_job_frame.pack(fill="x", pady=(0, 0))
+            self.third_job_frame.pack(fill="x", pady=(0, 5))
         
         # Special handling for Paula characters - they don't have 3rd job base fashion
         if char_id in ["chr025", "chr026", "chr027"]:
@@ -1931,19 +1774,12 @@ class PaletteTool:
     def update_hair_section(self):
         """Update the Hair section"""
         # Clear existing widgets
-        for widget in self.hair_scrollable_frame.winfo_children():
+        for widget in self.hair_frame.winfo_children():
             widget.destroy()
         
-        # Clear any existing "NONE" option
-        for widget in self.hair_frame.winfo_children():
-            if isinstance(widget, tk.Radiobutton) and widget.cget("text") == "NONE":
-                widget.destroy()
-        
         # Add "NONE" option outside the scrollable area
-        rb = tk.Radiobutton(self.hair_frame, text="NONE", variable=self.hair_var,
-                      value="NONE", command=self.on_hair_change)
-        rb.configure(pady=0, bd=0, highlightthickness=0)  # Remove all padding and borders
-        rb.pack(anchor="w", padx=(10, 0), pady=1, before=self.hair_canvas)
+        tk.Radiobutton(self.hair_frame, text="NONE", variable=self.hair_var, 
+                      value="NONE", command=self.on_hair_change).pack(anchor="w", padx=5, pady=(5,0))
         
         if not hasattr(self, 'current_character') or not self.current_character:
             return
@@ -1953,7 +1789,18 @@ class PaletteTool:
         
         # Add hair palette options (limit to about 6 lines)
         if palette_char_id in self.hair_palettes:
-            # Add hair palette options to the existing scrollable frame
+            # Create a scrollable frame for hair options if there are many
+            hair_canvas = tk.Canvas(self.hair_frame, height=80, width=280)
+            hair_scrollbar = tk.Scrollbar(self.hair_frame, orient="vertical", command=hair_canvas.yview)
+            hair_scrollable_frame = tk.Frame(hair_canvas)
+            
+            def update_hair_scroll_region(event):
+                hair_canvas.configure(scrollregion=hair_canvas.bbox("all"))
+            
+            hair_scrollable_frame.bind("<Configure>", update_hair_scroll_region)
+            hair_canvas.create_window((0, 0), window=hair_scrollable_frame, anchor="nw")
+            hair_canvas.configure(yscrollcommand=hair_scrollbar.set)
+            
             for palette_path in sorted(self.hair_palettes[palette_char_id]):
                 palette_name = os.path.basename(palette_path)
                 # Check if this is a custom palette
@@ -1963,11 +1810,11 @@ class PaletteTool:
                 is_custom = os.path.abspath(palette_path).startswith(os.path.abspath(custom_pals_path))
                 display_name = f"{palette_name} (C)" if is_custom else palette_name
                 
-                rb = tk.Radiobutton(self.hair_scrollable_frame, text=display_name, variable=self.hair_var,
-                              value=palette_path, command=self.on_hair_change)
-                rb.configure(pady=2)
-                rb.pack(anchor="w", padx=(10, 0), pady=1)
-                self.register_focusable(rb, f"hair_{palette_path}")
+                tk.Radiobutton(hair_scrollable_frame, text=display_name, variable=self.hair_var,
+                              value=palette_path, command=self.on_hair_change).pack(anchor="w")
+            
+            hair_canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            hair_scrollbar.pack(side="right", fill="y", pady=5)
         
         # Set default to NONE
         self.hair_var.set("NONE")
@@ -2046,23 +1893,21 @@ class PaletteTool:
                 if fashion_type.startswith("fashion_"):
                     # Create a frame for this fashion type
                     type_frame = tk.Frame(self.fashion_scrollable_frame)
-                    type_frame.pack(fill="x", pady=0)
+                    type_frame.pack(fill="x", pady=2)
                     
                     # Get proper fashion type name
                     fashion_name = self.get_fashion_type_name(char_id, fashion_type)
                     
                     # Label for fashion type
-                    tk.Label(type_frame, text=f"{fashion_name}:", font=("Arial", 9, "bold")).pack(anchor="w", pady=(1,0))
+                    tk.Label(type_frame, text=f"{fashion_name}:", font=("Arial", 9, "bold")).pack(anchor="w")
                     
                     # Radio buttons for this type
                     var = tk.StringVar()
                     self.fashion_vars[fashion_type] = var
                     
                     # Add "NONE" option for each fashion type
-                    rb = tk.Radiobutton(type_frame, text="NONE", variable=var,
-                                      value="NONE", command=self.on_fashion_change)
-                    rb.configure(pady=2)
-                    rb.pack(anchor="w", padx=(10, 0), pady=1)
+                    tk.Radiobutton(type_frame, text="NONE", variable=var,
+                                  value="NONE", command=self.on_fashion_change).pack(anchor="w", padx=(10, 0))
                     
                     for palette_name, palette_path in palettes:
                         # Check if this is a custom palette
@@ -2072,11 +1917,8 @@ class PaletteTool:
                         is_custom = os.path.abspath(palette_path).startswith(os.path.abspath(custom_pals_path))
                         display_name = f"{palette_name} (C)" if is_custom else palette_name
                         
-                        rb = tk.Radiobutton(type_frame, text=display_name, variable=var,
-                                          value=palette_path, command=self.on_fashion_change)
-                        rb.configure(pady=2)
-                        rb.pack(anchor="w", padx=(10, 0), pady=0)
-                        self.register_focusable(rb, f"fashion_{fashion_type}_{palette_path}")
+                        tk.Radiobutton(type_frame, text=display_name, variable=var,
+                                      value=palette_path, command=self.on_fashion_change).pack(anchor="w", padx=(10, 0))
                     
                     # Set default to NONE for all characters
                     var.set("NONE")
@@ -2303,24 +2145,24 @@ class PaletteTool:
         self.master.wait_window(dialog.dialog)
         
         if dialog.result is not None:
-            frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_choice, chosen_frame, palette_format, cute_bg = dialog.result
+            frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_myshop, use_choice, chosen_frame, palette_format = dialog.result
             self.custom_frame_count = frame_count
             self.use_bmp_export = use_bmp
             self.use_portrait_export = use_portrait
+            self.use_myshop_export = use_myshop
             self.show_frame_labels = show_labels
             self.custom_start_frame = start_frame
             self.custom_end_frame = end_frame
-            self.cute_bg_option = cute_bg
             
             # If user chose a specific frame, set it as the start index
             if use_choice and chosen_frame is not None:
-                self.custom_start_index = chosen_frame - 1  # Convert 1-based to 0-based for internal use
+                self.custom_start_index = chosen_frame - 1  # Convert from 1-based to 0-based
             else:
                 self.custom_start_index = start_frame
             print(f"=== DIALOG RESULT ===")
             print(f"BMP={use_bmp}")
             print(f"Portrait={use_portrait}")
-            print(f"Cute BG={cute_bg}")
+            print(f"MyShop={use_myshop}")
             print("===================")
             self.update_image_display()  # Refresh display to show/hide labels
             self.update_export_button_text()
@@ -2357,32 +2199,6 @@ class PaletteTool:
         if job_settings:
             frame_count, start_frame, end_frame = job_settings
             # Validate stored settings
-            
-            # Calculate visually distributed frames
-            if frame_count > 1:
-                # Calculate the step size between frames for visual distribution
-                total_range = end_frame - start_frame + 1
-                if total_range >= frame_count:
-                    # Use floating-point division for more accurate spacing
-                    step = total_range / (frame_count - 1)
-                    # Generate frame indices
-                    frames = []
-                    for i in range(frame_count):
-                        frame_idx = int(start_frame + (i * step))
-                        # Ensure we don't exceed the end frame
-                        frame_idx = min(frame_idx, end_frame)
-                        frames.append(frame_idx)
-                    # Ensure the last frame is included if we have more than one frame
-                    if frames and frames[-1] != end_frame and frame_count > 1:
-                        frames[-1] = end_frame
-                    return frames
-                else:
-                    # If range is smaller than frame count, return all frames in range
-                    return list(range(start_frame, end_frame + 1))
-            else:
-                # For single frame, just return the start frame
-                return [start_frame]
-            
             if start_frame >= max_frames:
                 start_frame = 0
             if end_frame >= max_frames:
@@ -2619,7 +2435,6 @@ class PaletteTool:
         self.tk_image = ImageTk.PhotoImage(display_img)
         # Clear canvas and recreate image
         self.canvas.delete("all")
-        # Left align the image like in custom view
         self.img_id = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
         
         # Add frame number text below the image
@@ -2631,9 +2446,8 @@ class PaletteTool:
             self.canvas.create_text(display_w // 2, text_y, text=str(frame_number), 
                                   anchor="n", font=("Arial", 8))
         
-        # Configure canvas to show full content
         self.canvas.config(scrollregion=(0, 0, display_w, display_h + 25))  # Add extra space for frame number
-        # Force canvas update
+        # Force canvas update to ensure display refreshes
         self.canvas.update()
         self.canvas.update_idletasks()
         self.master.update()
@@ -3365,9 +3179,9 @@ class PaletteTool:
                 chr011_ranges = {
                     "fashion_1": [range(0, 110), range(111, 137)],  # 0-109, 111-136
                     "fashion_2": [range(0, 137), range(138, 149)],  # 0-136, 138-148
-                    "fashion_3": [range(150, 158)],  # Satchel: 150-157
-                    "fashion_4": [range(159, 176)],  # Gloves: 159-175
-                    "fashion_5": [range(177, 201)]   # Shoes: 177-200
+                    "fashion_3": [range(0, 149), range(150, 236)],  # 0-148, 150-235
+                    "fashion_4": [range(0, 177)],  # 0-176
+                    "fashion_5": [range(0, 177), range(178, 198)]   # 0-176, 178-197
                 }
                 
                 best_match = "unknown"
@@ -3965,13 +3779,6 @@ class PaletteTool:
         # Fallback: return all indices for unknown characters or palette types
         return [range(256)]
 
-    def reset_scroll_positions(self):
-        """Reset hair and fashion scroll positions to top"""
-        if hasattr(self, 'hair_canvas'):
-            self.hair_canvas.yview_moveto(0)
-        if hasattr(self, 'fashion_canvas'):
-            self.fashion_canvas.yview_moveto(0)
-
     def reset_to_original(self):
         """Reset to show the original image without any palette modifications"""
         if not self.original_image:
@@ -4054,7 +3861,7 @@ class PaletteTool:
         print(f"=== EXPORT SETTINGS ===")
         print(f"BMP={self.use_bmp_export}")
         print(f"Portrait={self.use_portrait_export}")
-        print(f"Cute BG={self.cute_bg_option}")
+        print(f"MyShop={self.use_myshop_export}")
         print("======================")
             
         # Get base paths
@@ -4096,6 +3903,7 @@ class PaletteTool:
             # Get save paths for each format
             regular_path = file_path  # Use exactly what the user chose
             portrait_path = os.path.join(target_dir, f"{base_filename}_illu.bmp")
+            myshop_path = os.path.join(target_dir, f"{base_filename}_shop.bmp")
             
             # Regular BMP export
             def save_regular():
@@ -4116,6 +3924,7 @@ class PaletteTool:
                         if pixel != self.background_color:
                             mask.putpixel((i % img.width, i // img.width), 255)
                     
+                    # Determine which outputs to create based on cute_bg_option
                     outputs = []
                     
                     # Handle regular background color output
@@ -4129,27 +3938,72 @@ class PaletteTool:
                     # Handle cute background output
                     if self.cute_bg_option in ["cute_bg", "both"]:
                         if self.myshop_base is None:
-                            messagebox.showerror("Error", "MyShop base image not found. Please ensure myshop_base.bmp exists in the rawbmps folder.")
-                            return "Failed: MyShop base image not found"
+                            raise AttributeError("MyShop base image not loaded")
                         
                         # Create a copy of the base image and convert to RGB
-                        cute_img = self.myshop_base.copy().convert("RGB")
+                        portrait_img = self.myshop_base.copy().convert("RGB")
                         
                         # Replace magenta (255, 0, 255) with user's background color
-                        data = list(cute_img.getdata())
+                        data = list(portrait_img.getdata())
                         for i, pixel in enumerate(data):
                             if pixel == (255, 0, 255):  # Magenta
                                 data[i] = self.background_color
-                        cute_img.putdata(data)
+                        portrait_img.putdata(data)
                         
                         # Paste the frame onto the base image
-                        cute_img.paste(img, (x, y), mask)
-                        cute_img.save(portrait_path.replace(".bmp", "_cute.bmp"), "BMP", quality=24)
+                        portrait_img.paste(img, (x, y), mask)
+                        portrait_img.save(portrait_path, "BMP", quality=24)
                         outputs.append("Portrait (105x105) with Cute BG")
                     
                     return " & ".join(outputs)
                 export_ops.append(save_portrait)
             
+            # MyShop export (if selected)
+            if self.use_myshop_export:
+                def save_myshop():
+                    # Create a 135x135 image
+                    x = (135 - img.width) // 2
+                    y = (135 - img.height) // 2
+                    
+                    # Create mask for non-background pixels in the frame
+                    mask = Image.new("L", img.size, 0)
+                    for i, pixel in enumerate(img.getdata()):
+                        if pixel != self.background_color:
+                            mask.putpixel((i % img.width, i // img.width), 255)
+                    
+                    # Determine which outputs to create based on cute_bg_option
+                    outputs = []
+                    
+                    # Handle regular background color output
+                    if self.cute_bg_option in ["no_cute_bg", "both"]:
+                        # Create image with user's background color
+                        regular_img = Image.new("RGB", (135, 135), self.background_color)
+                        regular_img.paste(img, (x, y), mask)
+                        regular_img.save(myshop_path.replace(".bmp", "_regular.bmp"), "BMP", quality=24)
+                        outputs.append("MyShop (135x135) with Background Color")
+                    
+                    # Handle cute background output
+                    if self.cute_bg_option in ["cute_bg", "both"]:
+                        if self.myshop_base135 is None:
+                            raise AttributeError("MyShop base 135x135 image not loaded")
+                        
+                        # Create a copy of the base image and convert to RGB
+                        myshop_img = self.myshop_base135.copy().convert("RGB")
+                        
+                        # Replace magenta (255, 0, 255) with user's background color
+                        data = list(myshop_img.getdata())
+                        for i, pixel in enumerate(data):
+                            if pixel == (255, 0, 255):  # Magenta
+                                data[i] = self.background_color
+                        myshop_img.putdata(data)
+                        
+                        # Paste the frame onto the base image
+                        myshop_img.paste(img, (x, y), mask)
+                        myshop_img.save(myshop_path, "BMP", quality=24)
+                        outputs.append("MyShop (135x135) with Cute BG")
+                    
+                    return " & ".join(outputs)
+                export_ops.append(save_myshop)
             
             # Execute all export operations
             exported = []
@@ -4180,166 +4034,76 @@ class PaletteTool:
             messagebox.showinfo("Notice", "Please load a character image first.")
             return
         
-        # Get base paths
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(script_dir)
-        export_dir = os.path.join(root_dir, "exports", "images")
-        
-        # Get base file name without extension
-        base_name = f"{self.current_character}_{self.current_image_index:03d}"
-        
-        # Get save path for regular PNG
-        default_path = os.path.join(export_dir, f"{base_name}.png")
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            filetypes=[("PNG Images", "*.png")],
-            initialfile=os.path.basename(default_path),
-            initialdir=os.path.dirname(default_path)
-        )
-        
-        if not file_path:
+        path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG Images", "*.png")])
+        if not path:
             return
-            
-        # Get the target directory and base filename from user's chosen path
-        target_dir = os.path.dirname(file_path)
-        base_filename = os.path.splitext(os.path.basename(file_path))[0]
         
         try:
             # Get the merged palette
             merged_palette = self.get_merged_palette()
             
-            # Get the current image with all palettes applied
-            img = self.get_display_image_for_export()
-            if img is None:
-                raise AttributeError("Failed to get current display image")
+            # Create a new image with the merged palette
+            w, h = self.original_image.size
+            display_img = Image.new("P", (w, h))
             
-            # Prepare export operations
-            export_ops = []
+            # Apply the merged palette FIRST
+            display_img.putpalette([color for palette_color in merged_palette for color in palette_color])
             
-            # Regular PNG export
-            def save_regular():
-                # Convert to RGBA to handle transparency
-                rgba_img = img.convert("RGBA")
-                pixels = rgba_img.load()
+            # THEN copy the pixel data from original image
+            display_img.putdata(self.original_image.getdata())
+            
+            # Convert to RGBA to handle transparency
+            rgba_img = display_img.convert("RGBA")
+            
+            # Get the pixel data
+            pixels = rgba_img.load()
+            
+            # Apply character-specific transparency based on original palette colors
+            if hasattr(self, 'current_character') and self.current_character:
+                char_num = self.current_character[3:]
                 
-                # Apply character-specific transparency
-                if hasattr(self, 'current_character') and self.current_character:
-                    char_num = self.current_character[3:]
-                    transparent_count = 0
-                    total_pixels = img.width * img.height
-                    
-                    for y in range(img.height):
-                        for x in range(img.width):
-                            pixel = img.getpixel((x, y))
-                            should_make_transparent = False
-                            
-                            # Check if the pixel should be transparent
-                            if pixel != (0, 0, 0):  # Never make black transparent
-                                if char_num == "014":
-                                    if self.is_chr014_keying_color(pixel):
-                                        should_make_transparent = True
-                                else:
-                                    if self.is_universal_keying_color(pixel) or pixel == (255, 0, 255):  # Magenta
-                                        should_make_transparent = True
-                            
-                            if should_make_transparent:
-                                pixels[x, y] = (0, 0, 0, 0)  # Transparent
-                                transparent_count += 1
+                # Debug: Count transparent pixels
+                transparent_count = 0
+                total_pixels = w * h
                 
-                # Save regular PNG
-                rgba_img.save(file_path, "PNG")
-                return "Regular PNG"
-            
-            export_ops.append(save_regular)
-            
-            # Portrait export (if selected)
-            if self.use_portrait_export:
-                def save_portrait():
-                    # Create a 105x105 image
-                    x = (105 - img.width) // 2
-                    y = (105 - img.height) // 2
-                    
-                    # Create mask for non-background pixels in the frame
-                    mask = Image.new("L", img.size, 0)
-                    for i, pixel in enumerate(img.getdata()):
-                        if pixel != self.background_color:
-                            mask.putpixel((i % img.width, i // img.width), 255)
-                    
-                    outputs = []
-                    
-                    # Handle regular portrait output with transparency
-                    if self.cute_bg_option in ["no_cute_bg", "both"]:
-                        # Create transparent base image
-                        portrait_img = Image.new("RGBA", (105, 105), (0, 0, 0, 0))
-                        # Convert frame to RGBA for transparency
-                        frame_rgba = img.convert("RGBA")
-                        # Make background color transparent
-                        frame_data = list(frame_rgba.getdata())
-                        for i, pixel in enumerate(frame_data):
-                            if pixel[:3] == self.background_color:
-                                frame_data[i] = (0, 0, 0, 0)
-                        frame_rgba.putdata(frame_data)
-                        # Paste the frame onto the transparent base
-                        portrait_img.paste(frame_rgba, (x, y), mask)
-                        # Save as PNG with _illu suffix
-                        portrait_path = os.path.join(target_dir, f"{base_filename}_illu.png")
-                        portrait_img.save(portrait_path, "PNG")
-                        outputs.append("Portrait (105x105) with Transparency")
-                    
-                    # Handle cute background output
-                    if self.cute_bg_option in ["cute_bg", "both"]:
-                        if self.myshop_base is None:
-                            messagebox.showerror("Error", "MyShop base image not found. Please ensure myshop_base.bmp exists in the rawbmps folder.")
-                            return "Failed: MyShop base image not found"
-                        
-                        # Create a copy of the base image and convert to RGBA
-                        cute_img = self.myshop_base.copy().convert("RGBA")
-                        
-                        # Replace magenta with transparency
-                        data = list(cute_img.getdata())
-                        for i, pixel in enumerate(data):
-                            if pixel[:3] == (255, 0, 255):  # Magenta
-                                data[i] = (0, 0, 0, 0)  # Transparent
-                        cute_img.putdata(data)
-                        
-                        # Convert frame to RGBA and make background transparent
-                        frame_rgba = img.convert("RGBA")
-                        frame_data = list(frame_rgba.getdata())
-                        for i, pixel in enumerate(frame_data):
-                            if pixel[:3] == self.background_color:
-                                frame_data[i] = (0, 0, 0, 0)
-                        frame_rgba.putdata(frame_data)
-                        
-                        # Paste the frame onto the base image
-                        cute_img.paste(frame_rgba, (x, y), mask)
-                        # Save as PNG with _cute suffix
-                        cute_path = os.path.join(target_dir, f"{base_filename}_cute.png")
-                        cute_img.save(cute_path, "PNG")
-                        outputs.append("Portrait (105x105) with Cute BG")
-                    
-                    return " & ".join(outputs)
+                # Get original image pixel data to check original palette indices
+                original_pixel_data = list(self.original_image.getdata())
                 
-                export_ops.append(save_portrait)
+                for y in range(h):
+                    for x in range(w):
+                        should_make_transparent = False
+                        
+                        # Get the original palette index for this pixel
+                        pixel_index = y * w + x
+                        if pixel_index < len(original_pixel_data):
+                            palette_index = original_pixel_data[pixel_index]
+                            if palette_index < len(self.original_palette):
+                                original_color = self.original_palette[palette_index]
+                                
+                                # Check if the original color was a keying color
+                                # Never make black transparent
+                                if original_color != (0, 0, 0):
+                                    # Use character-specific keying logic
+                                    if char_num == "014":
+                                        # chr014 uses more selective keying
+                                        if self.is_chr014_keying_color(original_color):
+                                            should_make_transparent = True
+                                    else:
+                                        # Universal keying colors for other characters
+                                        if self.is_universal_keying_color(original_color) or original_color == (255, 0, 255):  # Magenta
+                                            should_make_transparent = True
+                        
+                        if should_make_transparent:
+                            pixels[x, y] = (0, 0, 0, 0)  # Transparent
+                            transparent_count += 1
+                
+                # Debug: Show transparency info
+                transparency_percentage = (transparent_count / total_pixels) * 100
+
             
-            # Execute all export operations
-            exported = []
-            errors = []
-            for export_op in export_ops:
-                try:
-                    result = export_op()
-                    exported.append(result)
-                except Exception as e:
-                    errors.append(str(e))
-            
-            # Show results
-            if exported:
-                success_msg = "Exported:\n- " + "\n- ".join(exported)
-                if errors:
-                    success_msg += "\n\nErrors:\n- " + "\n- ".join(errors)
-                messagebox.showinfo("Export Complete", success_msg)
-            else:
-                error_msg = "Failed to export any files:\n- " + "\n- ".join(errors)
-                messagebox.showerror("Export Failed", error_msg)
+            # Save as PNG with transparency
+            rgba_img.save(path, "PNG")
+            messagebox.showinfo("Success", f"Exported transparent PNG to {path}\nTransparency: {transparent_count}/{total_pixels} pixels ({transparency_percentage:.1f}%)")
             
         except Exception as e:
             messagebox.showerror("Error", f"Export failed: {e}")
@@ -4569,10 +4333,6 @@ class PaletteTool:
             
         except Exception as e:
             messagebox.showerror("Error", f"Export failed: {e}")
-
-    def update_bg_color_button(self):
-        """Update the background color button appearance"""
-        self.bg_color_button.configure(bg=f'#{self.background_color[0]:02x}{self.background_color[1]:02x}{self.background_color[2]:02x}')
 
     def pick_background_color(self):
         """Open color picker to change background color for preview"""
