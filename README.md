@@ -1,4 +1,4 @@
-# Fashion Previewer v3.2
+# Fashion Previewer v4.0
 
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!
@@ -46,7 +46,10 @@ Thank you for your hard work and contributions to bring this tool to life for th
 - **Export Options:** Export as transparent PNG, backgrounded BMP, or combined palette
 - **Multiple Preview Modes:** Single frame, all frames, or a custom range
 - **Live Pal Editing**: Single or multiple indexes with sliders and saved colors
+- **Illustration and Icon Export**: To make your life simple with implementation!
 - **Key Commands**: Commands to make your life simple and efficient!
+- **Click to Index**: Jump to an index by clicking on the Live Preview!
+- **Local Statistics**: For the funzies, to track your progress, saved ONLY on your PC!
 
 ### Keyboard Shortcuts
 
@@ -67,29 +70,40 @@ Quick Actions:
 - **Fashion palettes:** `chr###_w#.pal` (e.g., `chr001_w47.pal`)
 - **Hair palettes:** `chr###_#.pal` (e.g., `chr001_5.pal`)
 - Place custom palettes in the `exports/custom_pals/` folder
+- **Saved colors:** JSON for Saved Colors boxes, PAL for Icon Colors
+   - JSON saved in `exports/colors/json` folder 
+   - PAL saved in `exports/colors/icon` folder
+- Saved colors **do not** have to be saved in these folders to be imported
+
 
 ## Quick Start
 
 ### For Windows Users:
+
 1. Install Python 3.7+ from [python.org](https://python.org)
 2. Type "Environment" in Windows Start search and Add the location of the
-   Python folder to your "Paths"
+   Python folder to your "Paths" 
+      **NOTE:** For this step, there IS a tutorial image in `AAA Tutorials`
 3. Restart
-4. Open terminal/command prompt in the folder & run `pip install Pillow`
-5. **Double-click `run_previewer.bat`** to start the application
+4. **Double-click `run_previewer.bat`** to start the application
    - This will automatically check for Python and required folders
+   - This SHOULD download all dependencies for you, if you haven't already.
    - If you get dependency errors, run: `pip install Pillow`
    - If you're on the version WITHOUT the bat/launcher, then type in the
-      terminal `py fashionpreviewer.py`
+      terminal `pip install Pillow` (your first time v4.0+) then 
+      `py fashionpreviewer.py`
+
 
 ### For Linux:
+
 1. Install Python 3.7+ from [python.org](https://python.org)
-2. Open terminal/command prompt in the folder & run `pip install pillow`
-3. Double-left click `run_previewer.sh` or run in the
-   terminal `python launch_previewer.py`
+2. Double-left click `run_previewer.sh` or run in the terminal 
+   `pip install pillow` (your first time v4.0+) and then 
+   `python launch_previewer.py`
 
 
 ### For Other Operating Systems:
+
 1. Install Python 3.7+ from [python.org](https://python.org)
 2. Open terminal/command prompt in this folder
 3. Run: `pip install pillow`
@@ -107,42 +121,52 @@ The application expects the following folders to be present:
 
 ```
 FashionPreviewer/
-├── changelog.md              # Obvious
-├── README.md                # This document :3c
-├── LICENSE                  # Legally binding license
-├── run_windows.bat          # Windows launcher
-├── run_linux.sh            # Linux launcher
-├── AAA Legacy/             # Old Versions
+├── changelog.md                      # Obvious
+├── README.md                         # This document :3c
+├── LICENSE                           # Legally binding license
+├── run_windows.bat                   # Windows launcher
+├── run_linux.sh                      # Linux launcher
+├── AAA Legacy/                       # Old Versions
 │   ├── v2.0/               
 │   ├── v2.1/               
-│   └── ...                 # Other versions
-├── AAA Tutorials/          # Tutorial Images
-│   ├── EditorTutorial.png/ # How to use the editor in general           
-│   └── pythonpathwind.png/ # How to add Python to Environment Paths  
-├── exports/                # Export directory
-│   ├── images/             # Exported BMPs and PNGs 
-│   └── custom_pals/        # Exported custom palettes             
-└── src/                    # Core assets folder
-    ├── fashionpreviewer.py # da main sauce
-    ├── launch_previewer.py # Cross-platform launcher
-    ├── rawbmps/           # Character images
-    │   ├── chr001/        # Bunny 1st Job images (bmps able to be removed/deleted)
-    │   ├── chr002/        # Buffalo 1st Job images (bmps able to be removed/deleted)
-    │   ├── myshop_base.bmp # Base image for MyShop exports
-    │   └── ...           # Other character folders (bmps able to be removed/deleted)
-    └── vanilla_pals/      # Default game palettes
-        ├── fashion/       # Fashion palettes
-        │   ├── chr001_w00.pal
-        │   ├── chr001_w01.pal
-        │   └── ...
-        ├── hair/         # Hair palettes
-        │   ├── chr001_1.pal
-        │   ├── chr001_2.pal
-        │   └── ...
-        └── 3rd_default_fashion/  # 3rd job base fashion
-            ├── chr017/
-            ├── chr018/
-            └── ...
+│   └── ...                           # Other versions
+├── AAA Tutorials/                    # Tutorial Images
+│   ├── EditorTutorial.png/           # How to use the editor in general           
+│   └── pythonpathwind.png/           # How to add Python to Environment Paths  
+├── exports/                          # Export directory
+│   ├── images/                       # Exported BMPs and PNGs
+│   ├── custom_fashion_pals/          # Exported custom palettes
+│   ├── icons/                        # Exported icons
+│   └── colors/                       # Saved color collections
+│       ├── json/                     # JSON color files from all editors
+│       └── icon/                     # Icon color palette files
+└── src/                              # Core assets folder
+    ├── fashionpreviewer.py           # da main sauce
+    ├── launch_previewer.py           # Cross-platform launcher
+    ├── rawbmps/                      # Character images
+    │   ├── chr001/                   # Bunny 1st Job images (bmps able to be removed/deleted)
+    │   ├── chr002/                   # Buffalo 1st Job images (bmps able to be removed/deleted)
+    │   └── ...                       # Other character folders (bmps able to be removed/deleted)
+    └── nonremovable_assets/          # Assets that shouldn't be removed/modified
+        ├── myshop_base.bmp           # Base image for MyShop exports
+        ├── icons/                    # Icon assets
+        │   ├── chr001/               # Bunny fashion icons
+        │   │   ├── BMP/              # Icon BMPs
+        │   │   └── PAL/              # Icon palettes
+        │   └── ...                   # Other character icon folders
+        └── vanilla_pals/             # Default game palettes
+            ├── fashion/              # Fashion palettes
+            │   ├── chr001_w00.pal
+            │   ├── chr001_w01.pal
+            │   └── ...
+            ├── hair/                 # Hair palettes
+            │   ├── chr001_1.pal
+            │   ├── chr001_2.pal
+            │   └── ...
+            └── 3rd_default_fashion/  # 3rd job base fashion
+                ├── chr017/
+                ├── chr018/
+                └── ...
 
 ```
 
@@ -154,98 +178,46 @@ FashionPreviewer/
    - Make sure you DID NOT MOVE THE PALS FOLDER INTO THE CUSTOM PALS FOLDER (don't do that!!!!!!!!!!!!)
    - Double check that the palette is correct in another palette editor and compare it to a vanilla of a
       similar type, including the transparent indexes
+4. The icon editor's color imports are finnicky--the inverse order operation should help adjust, but it
+   is not perfect, and I am sorry. I may be trying to fix this in a future update.
 
 ## Troubleshooting
 
-### "Previewer and fashion doesn't load"
+For a comprehensive list of error messages, their solutions, and other problems you may encounter, please see
+    **[TROUBLESHOOTING.md](AAA%20TUTORIALS/TROUBLESHOOTING.md)** for more information.
 
-**Most Common Causes:**
 
-1. **Wrong Working Directory**
-   - **IMPORTANT**: The application must be run from the FashionPreviewer folder
-   - Use `run_previewer.bat` (Windows), `run_previewer.sh` (Linux), or `launch_previewer.py` to ensure correct directory
-   - Don't double-click the .py file directly - it may run from the wrong directory
+This document contains detailed information about:
+- Python dependency errors
+- Launcher and startup issues
+- File structure warnings
+- Palette loading errors
+- Export failures
+- Input validation errors
+- Icon editor issues
+- "Intended" issues
+- And much more!
 
-2. **Missing Python Dependencies**
-   - Run: `pip install Pillow`
-   - Make sure Python is installed and added to PATH
+Each error includes the exact message, cause, and solution.
 
-3. **Missing Required Folders**
-   - Ensure `src/rawbmps/` folder exists with character images
-   - Ensure `src/pals/` folder exists with fashion and hair palettes
-   - Check that folder names match exactly (case-sensitive)
-
-4. **Python Not in PATH**
-   - Reinstall Python and check "Add to PATH" during installation
-   - Restart computer after Python installation
-
-### Error Messages
-
-1. **"ModuleNotFoundError: No module named 'PIL'"**
-   - Run: `pip install Pillow`
-
-2. **"FileNotFoundError" or "No images found"**
-   - Check that `src/rawbmps/` folder exists with character subfolders
-   - Verify image files are .bmp or .png format
-   - Make sure you're running from the correct directory
-
-3. **"No palettes found"**
-   - Check that `src/pals/fashion/` and `src/pals/hair/` folders exist
-   - Verify palette files are .pal format
-   - Make sure you're running from the correct directory
-
-4. **"No custom palettes found"**
-   - Check that `src/custom_pals/` folder exists
-   - Verify palette files are .pal format
-   - Make sure you're running from the correct directory
-
-5. **"ModuleNotFoundError: No module named 'PIL'"**
-   - Run: `pip install Pillow`
-
-### Other Common Errors
-
-1. **Colors don't save when I am trying to save them in the pal editor!**
-   - Are you sure you're following the tutorial PNG? Right clicking to select a
-      color to save/change, and then left clicking to use to replace a cell?
-      There's now a button and help dialogue to help!
-
-### "Intended" Hardcoded User "Issues"
-
-1. **Custom Pals only respond to chr###_w# format!**
-   - Vanilla format--easier to keep up with tbh
-
-2. **Vanilla pal files are not able to be renamed in the program!**
-   - I've considered making a read-only label in the program for you, but I haven't decided how
-      to do it yet (maybe by the middle index of each or something or user label or both? Would
-      require work. I'll think about it some more.)
-
-3. **The character folders are named weird!**
-   - They're named in congruence with how they appear in the libconfig.
-
-4. **Fashion is labeled in weird categories**
-   - Look, I tried to do it from memory, ok? Forgive me. :( It's a LOT of work labeling these as
-      it is. I'll fix it later, probably.
-
-### "Fixed" Bugs
+## "Fixed" Bugs
 
 They may be back. Or not properly fixed. We don't know. Better safe than sorry.
 
-(These *should* be fixed in v2.1+)
+### (These *should* be fixed in v2.1+)
 
 1. **Sliders move on their own sometimes**
-   - Program's haunted (vibecoded); needs a priest (real coder)
-   - Uses divine intuition to tell what your colors *should* be, for sure. Definitely.
+   - Should be fixed in v2.1
 
 2. **Sliders keep resetting**
-   - Stop trying to make black move it's not going to like it at all, we don't
-      know why--please be nice this is vibecoded and free :(
+   - Should be fixed in v2.1
 
-(These *should* be fixed in v2.2+)
+### (These *should* be fixed in v2.2+)
 
 3. **Fox First Job fashion (purse) shows green hair when selected**
-   - UPDATE ALREADY!!!!!!!!!! (pls)
+   - Should be fixed in v2.2
 
-(These *should* be fixed in v2.3+)
+### (These *should* be fixed in v2.3+)
 
 4. **Third Job Dragon Fashion doesn't show the right indexes**
    - Should be fixed in v2.3
@@ -253,7 +225,7 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
 5. **Third Job Dragon Fashion sometimes has buttons disappear**
    - Should be fixed in v2.3
 
-(These *should* be fixed in v3.0+)
+### (These *should* be fixed in v3.0+)
 
 6. **Paula fashion is improperly labeled!**
    - Should be fixed in v3.0
@@ -261,7 +233,7 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
 7. **Custom pals only support 2 numbers!**
    - Goes infinitely in v3.0 now
 
-(These *should* be fixed in v3.2+)
+### (These *should* be fixed in v3.2+)
 
 8. **Gloves, Satchels, and Shoes are all being sorted together for Bard**
    - Should be fixed in v3.2
@@ -272,41 +244,36 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
 10. **Scroll wheel doesn't work with the scroll boxes**
    - Should be fixed in v3.2
 
+### (These *should* be fixed in v4.0+)
 
-### Debug Information
+11. **Live Edit Pallette editor breaks on Linux**
+   - Should be fixed in v4.0 or v3.1 (if you want to downgrade, for whatever reason)
 
-The application now includes debug output that shows:
-- Current working directory
-- Paths where it's looking for files
-- Summary of loaded data
+12. **Shoes are not showing up for Fox 2nd job Fashion**
+   - Should be fixed in v4.0
 
-If you see "Looking for rawbmps folder at: C:\Some\Wrong\Path", then the working directory is wrong.
+13. **Some Gears Options don't stay when the menu closes**
+   - Should be fixed in v4.0
 
-### Manual Installation Steps
+14. **Double click bug in Live Pal Editor makes certain colors duplicate!**
+   - Should be fixed in v4.0 (mostly; we can only do so much protection with
+      this, I found, unfortunately.)
 
-If the launchers don't work:
+15. **Boxes jitter when selected in Live Pal Editor**
+   - Should be fixed in v4.0, along with a simpler editor to use by default
 
-1. **Install Python:**
-   - Download from [python.org](https://python.org)
-   - During installation, **check "Add Python to PATH"**
-   - Restart your computer
+16. **The program doesn't switch to All mode when max params are given**
+   - Should be fixed in v4.0
 
-2. **Install Dependencies:**
-   - Open Command Prompt as Administrator
-   - Navigate to FashionPreviewer folder
-   - Run: `pip install Pillow`
+17. **The program doesn't center the image on single view!**
+   - Honestly I really delayed fixing this because I CBA to rip up the file sooner.
+   - Should be fixed in v4.0
 
-3. **Run the Application:**
-   - Open Command Prompt
-   - Navigate to FashionPreviewer folder
-   - Run: `python fashionpreviewer.py`
+18. **The program doesn't support zoom past x% for Custom or All Previews**
+   - Intentional guardrail--needed to program the canvas to clip better
+   - Should be fixed in v4.0
 
+19. **The program only populates in rows of 3!**
+   - This was intentional for the zoom at the time
+   - Should be fixed in v4.0
 
-## Support
-
-If you continue to have issues:
-1. Check that all required folders exist
-2. Verify Python and Pillow are properly installed
-3. Try running from Command Prompt to see error messages
-4. **Most importantly**: Ensure you're running from the correct directory
-5. Use the provided launcher scripts to avoid working directory issues

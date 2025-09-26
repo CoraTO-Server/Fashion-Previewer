@@ -79,11 +79,68 @@
 - Added cancel button to Custom Frame Settings UI
 - Added keyboard shortcuts for quick use
 - Added ability to adjust hair+fashion box vertical sizing
+- Adjusted Custom Frame Settings UI a bit
 - Scroll boxes are now affected by Scroll Wheel
 - Scroll boxes now go back to the top when a new job/character is selected
 - Removed redundant MyShop Mode
 - Expanded custom frame and resolution support to PNG export (but transparent except for the cute frame)
-- Adjusted Custom Frame Settings UI a bit
 - Fixed BMP BG Style not ungreying when Background BMP is selected
 - Fixed Bard Fashion sorting
 - Fixed User Choice Frame Export using old frame system (started at 0 instead of 1)
+
+# 4.0 - Icon Upgrade + Bugfixes + Restructure
+- Added Live Icon Editor (please note the index translator SUCKS rn for light colors and I'm sorry I'm lazy :( )
+- Added guardrails to Live Icon Editor for only base fashion editing
+- Added all jobs icons
+- Added new/simpler UI to Live Icon Editor
+- Added automatic character, job, fashion, pallette, and icon importer for Icon Editor
+- Added icon display to Icon Editor
+- Added intuitive "index-pick" from preview in Icon Editor
+- Added zoom to preview on Icon Editor
+- Added Inverse Order to Icon Editor (just in case)
+- Added Quick Export/Live Icon Editor ask dialogue when saving a pal; Quick Export = export as pal name
+- Added "Reset to Original" button on the Live Pal Editor
+- Added excess scripts folder because why not. Enjoy. They're relevant to the program.
+- Added highlights to the boxes on the Live Pal Editor
+- Added "Simple" Live Pal Editor UI with working Live Preview
+- Added user index picker to Live Pal Editor's simple Live Preview
+- Added "Simple" and "Advanced" UI Options for the Live Pal Editor
+- Added Credits button to Gears Menu UI
+- Added Statistics button and a whole bunch of local statistics to track your progress (AND NOT SEND BACK
+    TO ME--I DON'T WANT YOUR INFO!!!!!!!)
+- Added automatic check and download of pillow & Python 3 dependencies to bat/sh files (even easier to use!)
+- Added readme for custom exports folder
+- Added frame skip guard rails to All Preview Mode
+- Added visual guard rails to Main UI when Live Pal Editor is open to prevent excessive flickering (I tried ok?)
+- Added Gradient tool to Simple Live Editors to streamline color variants even more
+- Added HSL control over Gradient Tool application to give even more flexibility and control to users
+- Added guard rails to HSL sliders & Gradient tool to avoid keying colors
+- Added guard rails to Hair icon editing to prevent usage
+- Added cache system to Live Editors so colors save as long as the editor's open
+- Added eyedropper tool to Live Editors (not Advanced Pal) to allow more flexibility+streamlining with multiple
+    palettes of the same color variant
+- Adjusted padding on Main UI a bit to be more concise
+- Adjusted Gears Menu UI to put two seperate boxes for Export + Portrait BG options
+- Adjusted Hair/3rd job Live Palette edit warnings to be in red text so people get the point
+- Centered the fking WINDOWS HOW HARD WAS IT CURSOR HOW HARD ALL THIS TIME
+- Cleaned up all random ahh print statements
+- Made a seperate document for all troubleshooting tips as well as the error messages and what they mean.
+- Rearranged folder structure (again)
+- Renamed the fashion labels to match what they are in game instead of the dumb placeholders
+- Reindexed Fox 2nd job Fashion
+- Removed guard rails on Zooming for Preview Modes
+- Removed guard rails on importing custom hair (because people honestly want to but they should read the
+    warning...)
+- Reversed the Live Pal Editor's UI selection to make it more obvious
+- Set "Simple" UI to default for the Live Pal Editor
+- Tinkered with Live Pal Editor UI more
+- Fixed a small error which caused the Live Edit Pallette to break on Linux
+- Fixed Shoes not showing up for Fox 2nd job Fashion
+- Fixed BG Choice, Frame choice, and Palette Format options not persisting when Gears Options menu closed
+- Fixed double click bug in Live Pal Editor where all colors would reset to selected color in some way (mostly)
+- Fixed jitter of boxes when selected in Live Pal Editor
+- Fixed initial frame options not using user's frame options correctly
+- Fixed All Mode being not properly switched in the Gears menu
+- Fixed characters not centering on the main UI
+- Fixed All/Custom views not populating rows/columns efficiently
+- Fixed flickering of the main UI when Live Pal Editing

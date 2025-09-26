@@ -1,0 +1,36 @@
+{
+    "live_palette_files_edited": [],
+    "live_palette_files_saved": [],
+    "icons_edited": [],
+    "icons_saved": [],
+    "frames_previewed": 5,
+    "frames_skipped": 0,
+    "start_time": 1758796410.7506893,
+    "character_edits": {
+        "chr001_1st Job": {
+            "views": 3,
+            "edits": 0,
+            "palette_saves": 0,
+            "exports": 0
+        },
+        "chr017_3rd Job": {
+            "views": 1,
+            "edits": 0,
+            "palette_saves": 0,
+            "exports": 0
+        }
+    },
+    "exported_frames": 0,
+    "exported_backgrounds": 0,
+    "exported_palettes": {},
+    "colors_saved": 0,
+    "indexes_changed": 0,
+    "indexes_selected": 0,
+    "indexes_saved_in_pals": 0,
+    "colors_saved_in_json": 0,
+    "preview_indexes_selected": {
+        "live_pal": 0,
+        "live_icon": 0
+    },
+    "palettes_previewed": 5
+}
