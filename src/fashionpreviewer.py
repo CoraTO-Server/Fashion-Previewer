@@ -119,11 +119,23 @@ class CustomPreviewDialog:
         palette_frame = tk.LabelFrame(main_frame, text="Palette Format")
         palette_frame.pack(fill="x", pady=(0,2), padx=5)  # Reduced padding
         
-        self.palette_format_var = tk.StringVar(value="pal")
+        self.palette_format_var = tk.StringVar(value="png")
         tk.Radiobutton(palette_frame, text="PAL", variable=self.palette_format_var,
                       value="pal").pack(side="left", padx=10, pady=2)
         tk.Radiobutton(palette_frame, text="PNG Grid", variable=self.palette_format_var,
                       value="png").pack(side="left", padx=10, pady=2)
+        
+        # Add checkbox to control Export Palette button visibility
+        # Get initial value from parent if available
+        initial_show_button = False
+        if isinstance(parent, PaletteTool):
+            initial_show_button = parent.show_export_palette_button
+        
+        self.show_export_button_var = tk.BooleanVar(value=initial_show_button)
+        self.show_export_checkbox = tk.Checkbutton(palette_frame, text="Show Button", 
+                                                    variable=self.show_export_button_var,
+                                                    command=self.toggle_export_button)
+        self.show_export_checkbox.pack(side="left", padx=10, pady=2)
         
         # Initialize variables
         self.format_var = tk.BooleanVar(value=self.use_bmp)
@@ -182,6 +194,8 @@ class CustomPreviewDialog:
                 self.parent.use_frame_choice = self.user_choice_var.get()
                 new_mode = self.live_pal_ui_var.get()
                 self.parent.live_pal_ui_mode = new_mode
+                # Update excess colors prompt setting (invert because setting is "dont_show")
+                self.parent.dont_show_excess_colors_prompt = not self.show_excess_colors_prompt_var.get()
                 
                 # If the live editor is open and the mode changed, rebuild the grid
                 if (old_mode != new_mode and 
@@ -293,13 +307,47 @@ class CustomPreviewDialog:
         self.palette_format_var.trace_add("write", update_parent_settings)
         self.user_choice_var.trace_add("write", update_parent_settings)
         
+        # Show Dev Buttons checkbox
+        dev_buttons_frame = tk.Frame(main_frame)
+        dev_buttons_frame.pack(fill="x", pady=(5, 0))
+        
+        # Get initial value from parent if available
+        initial_show_dev = False
+        if isinstance(parent, PaletteTool):
+            initial_show_dev = parent.show_dev_buttons
+        
+        self.show_dev_buttons_var = tk.BooleanVar(value=initial_show_dev)
+        self.show_dev_buttons_checkbox = tk.Checkbutton(dev_buttons_frame, text="Show Dev Buttons", 
+                                                        variable=self.show_dev_buttons_var,
+                                                        command=self.toggle_dev_buttons)
+        self.show_dev_buttons_checkbox.pack(anchor="center")
+        
+        # Excess Colors Prompt checkbox
+        excess_colors_frame = tk.Frame(main_frame)
+        excess_colors_frame.pack(fill="x", pady=(5, 0))
+        
+        # Get initial value from parent if available
+        initial_show_excess_prompt = True  # Default to True (show prompts)
+        if isinstance(parent, PaletteTool):
+            # Load from settings - note: setting is "dont_show" so we invert it
+            dont_show = getattr(parent, 'dont_show_excess_colors_prompt', False)
+            initial_show_excess_prompt = not dont_show
+        
+        self.show_excess_colors_prompt_var = tk.BooleanVar(value=initial_show_excess_prompt)
+        self.show_excess_colors_checkbox = tk.Checkbutton(excess_colors_frame, text="Show Excess Colors Prompts", 
+                                                         variable=self.show_excess_colors_prompt_var)
+        self.show_excess_colors_checkbox.pack(anchor="center")
+        
+        # Add trace for show_excess_colors_prompt_var after it's created
+        self.show_excess_colors_prompt_var.trace_add("write", update_parent_settings)
+        
         # Validation message
         self.validation_label = tk.Label(main_frame, text="", fg="red", wraplength=250)
         self.validation_label.pack(pady=5)
         
         # Button frame in the middle
         button_frame = tk.Frame(main_frame)
-        button_frame.pack(fill="x", pady=10)
+        button_frame.pack(fill="x", pady=(10, 40))
         
         # Center container for buttons
         button_container = tk.Frame(button_frame)
@@ -326,6 +374,10 @@ class CustomPreviewDialog:
         # Center the dialog after all content is created
         self.dialog.update_idletasks()
         self._center_dialog_on_parent()
+        
+        # Apply initial button visibility based on checkbox states
+        self.toggle_export_button()
+        self.toggle_dev_buttons()
         
         # Bind Enter key to OK
         self.dialog.bind("<Return>", lambda e: self.ok_clicked())
@@ -391,6 +443,27 @@ class CustomPreviewDialog:
                 child.configure(state=state)
         if not self.portrait_var.get():
             self.cute_bg_var.set("no_cute_bg")  # Reset to default when disabled
+    
+    def toggle_export_button(self):
+        """Toggle visibility of Export Palette button in parent PaletteTool"""
+        if isinstance(self.parent, PaletteTool):
+            if self.show_export_button_var.get():
+                # Insert before Live Edit Palette button to maintain order
+                self.parent.export_palette_button.pack(side="left", padx=(0, 5), before=self.parent.live_edit_button)
+            else:
+                self.parent.export_palette_button.pack_forget()
+    
+    def toggle_dev_buttons(self):
+        """Toggle visibility of dev buttons (Export All Frames, Debug Info) in parent PaletteTool"""
+        if isinstance(self.parent, PaletteTool):
+            if self.show_dev_buttons_var.get():
+                # Show Export All Frames button (insert before Export Palette or Live Edit button)
+                self.parent.export_all_frames_button.pack(side="left", padx=(0, 5), before=self.parent.live_edit_button)
+                # Show Debug Info button (insert before Statistics button)
+                self.parent.debug_info_button.pack(side="left", padx=(0, 5), before=self.parent.statistics_button)
+            else:
+                self.parent.export_all_frames_button.pack_forget()
+                self.parent.debug_info_button.pack_forget()
     
     def toggle_frame_choice(self):
         """Toggle visibility of frame choice entry"""
@@ -479,6 +552,24 @@ class CustomPreviewDialog:
             if range_size < frames:
                 frames = range_size  # Update frames to match range
                 self.frame_var.set(str(frames))  # Update the display
+            
+            # Check for 50+ frames warning if it's a PaletteTool
+            if isinstance(self.parent, PaletteTool) and frames > 50:
+                if not self.parent._get_50_frames_warning_preference():
+                    # Show warning dialog
+                    warning_dialog = FramesWarningDialog(self, frames)
+                    result, dont_show_again = warning_dialog.show()
+                    
+                    # Save the "don't show again" preference if user checked it
+                    if dont_show_again:
+                        self.parent._save_50_frames_warning_preference(True)
+                    
+                    if not result:
+                        # User chose "Nah I'm good" - highlight fields and return to dialog
+                        self._highlight_frame_fields()
+                        self.dialog.lift()
+                        self.dialog.focus_force()
+                        return
                 
             # Update parent's settings if it's a PaletteTool
             if isinstance(self.parent, PaletteTool):
@@ -489,18 +580,27 @@ class CustomPreviewDialog:
                 self.parent.show_frame_labels = self.labels_var.get()
                 self.parent.use_frame_choice = self.user_choice_var.get()
                 self.parent.live_pal_ui_mode = self.live_pal_ui_var.get()  # Update live pal editor UI mode
+                self.parent.show_export_palette_button = self.show_export_button_var.get()  # Save checkbox state
+                self.parent.show_dev_buttons = self.show_dev_buttons_var.get()  # Save checkbox state
                 if self.user_choice_var.get():
                     self.parent.chosen_frame = int(self.frame_choice_var.get())  # Keep as 1-based
                 # Apply immediate frame settings for custom preview
                 self.parent.custom_frame_count = frames
                 if not self.user_choice_var.get():
                     self.parent.custom_start_index = start_frame
+                
+                # Save settings to file (global settings + per-character)
+                self.parent._save_settings()
+                if self.parent.current_character:
+                    self.parent._save_character_settings(self.parent.current_character)
             
             # Include user's frame choice if enabled (keep as 1-based for result tuple)
             chosen_frame = int(self.frame_choice_var.get()) if self.user_choice_var.get() else None
             self.result = (frames, start_frame, end_frame, self.format_var.get(), self.labels_var.get(), 
                          self.portrait_var.get(), self.user_choice_var.get(), chosen_frame,
-                         self.palette_format_var.get(), self.cute_bg_var.get(), self.live_pal_ui_var.get())
+                         self.palette_format_var.get(), self.cute_bg_var.get(), self.live_pal_ui_var.get(),
+                         self.show_export_button_var.get(), self.show_dev_buttons_var.get(), 
+                         self.show_excess_colors_prompt_var.get())
             if close:
                 self.dialog.destroy()
             
@@ -537,6 +637,40 @@ class CustomPreviewDialog:
         
         # Set the dialog position (keep current size)
         self.dialog.geometry(f"+{x}+{y}")
+    
+    def _highlight_frame_fields(self):
+        """Highlight the frame-related input fields to draw attention"""
+        # Store original colors
+        if not hasattr(self, '_original_colors'):
+            self._original_colors = {}
+            
+        # Highlight start frame entry
+        if hasattr(self, 'start_entry'):
+            self._original_colors['start'] = self.start_entry.cget('bg')
+            self.start_entry.config(bg='#ffcccc')  # Light red
+            
+        # Highlight end frame entry  
+        if hasattr(self, 'end_entry'):
+            self._original_colors['end'] = self.end_entry.cget('bg')
+            self.end_entry.config(bg='#ffcccc')  # Light red
+            
+        # Highlight frames entry
+        if hasattr(self, 'frame_entry'):
+            self._original_colors['frames'] = self.frame_entry.cget('bg')
+            self.frame_entry.config(bg='#ffcccc')  # Light red
+            
+        # Schedule removal of highlighting after 3 seconds
+        self.dialog.after(3000, self._remove_highlight)
+    
+    def _remove_highlight(self):
+        """Remove highlighting from frame fields"""
+        if hasattr(self, '_original_colors'):
+            if hasattr(self, 'start_entry') and 'start' in self._original_colors:
+                self.start_entry.config(bg=self._original_colors['start'])
+            if hasattr(self, 'end_entry') and 'end' in self._original_colors:
+                self.end_entry.config(bg=self._original_colors['end'])
+            if hasattr(self, 'frame_entry') and 'frames' in self._original_colors:
+                self.frame_entry.config(bg=self._original_colors['frames'])
 
 class PaletteLayer:
     def __init__(self, name, colors, palette_type, active=True):
@@ -817,6 +951,199 @@ class StatisticsDialog:
         label_widget = ttk.Label(frame, text=full_text)
         label_widget.pack(fill="x", expand=True)
 
+class AllModeWarningDialog:
+    """Warning dialog for switching to 'All' mode"""
+    
+    def __init__(self, parent):
+        self.parent = parent
+        self.result = False
+        self.dont_show_again = False
+        
+        # Create the dialog window
+        self.dialog = tk.Toplevel(parent.master)
+        self.dialog.title("Warning - All Mode")
+        self.dialog.geometry("500x200")
+        self.dialog.resizable(False, False)
+        
+        # Make it modal and bring to front
+        self.dialog.transient(parent.master)
+        self.dialog.grab_set()
+        self.dialog.lift()
+        self.dialog.focus_force()
+        
+        # Center the dialog on the parent window
+        self._center_dialog()
+        
+        self._create_ui()
+        
+    def _center_dialog(self):
+        """Center the dialog on the parent window"""
+        self.dialog.update_idletasks()
+        
+        # Get parent window position and size
+        parent_x = self.parent.master.winfo_x()
+        parent_y = self.parent.master.winfo_y()
+        parent_width = self.parent.master.winfo_width()
+        parent_height = self.parent.master.winfo_height()
+        
+        # Calculate center position
+        dialog_width = self.dialog.winfo_reqwidth()
+        dialog_height = self.dialog.winfo_reqheight()
+        
+        x = parent_x + (parent_width // 2) - (dialog_width // 2)
+        y = parent_y + (parent_height // 2) - (dialog_height // 2)
+        
+        self.dialog.geometry(f"+{x}+{y}")
+        
+    def _create_ui(self):
+        """Create the dialog UI"""
+        main_frame = tk.Frame(self.dialog)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Warning message
+        message = ("Warning: This may be resource-intensive on even newer machines, continue? "
+                  "You can always use Custom Preview Options (the gear icon) to change your view "
+                  "to more or less frames.")
+        
+        msg_label = tk.Label(main_frame, text=message, wraplength=460, justify="left", font=("Arial", 10))
+        msg_label.pack(pady=(0, 20))
+        
+        # Button frame
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill="x", pady=(0, 10))
+        
+        # Buttons
+        ballsy_btn = tk.Button(button_frame, text="Yeah, I'm ballsy!", command=self._on_ballsy, 
+                              bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), width=15)
+        ballsy_btn.pack(side="left", padx=(0, 10))
+        
+        good_btn = tk.Button(button_frame, text="No, I'm good", command=self._on_good, 
+                            bg="#f44336", fg="white", font=("Arial", 10), width=15)
+        good_btn.pack(side="left")
+        
+        # Don't show again checkbox
+        self.dont_show_var = tk.BooleanVar()
+        checkbox = tk.Checkbutton(main_frame, text="Don't show warning again", 
+                                 variable=self.dont_show_var, font=("Arial", 9))
+        checkbox.pack(anchor="w")
+        
+        # Handle window close event
+        self.dialog.protocol("WM_DELETE_WINDOW", self._on_good)
+        
+    def _on_ballsy(self):
+        """User chose to proceed with All mode"""
+        self.result = True
+        self.dont_show_again = self.dont_show_var.get()
+        self.dialog.destroy()
+        
+    def _on_good(self):
+        """User chose not to proceed with All mode"""
+        self.result = False
+        self.dont_show_again = self.dont_show_var.get()
+        self.dialog.destroy()
+        
+    def show(self):
+        """Show the dialog and return the result"""
+        self.dialog.wait_window()
+        return self.result, self.dont_show_again
+
+
+class FramesWarningDialog:
+    """Warning dialog for displaying 50+ frames in custom preview"""
+    
+    def __init__(self, parent, frame_count):
+        self.parent = parent
+        self.frame_count = frame_count
+        self.result = False
+        self.dont_show_again = False
+        
+        # Create the dialog window
+        self.dialog = tk.Toplevel(parent.dialog)
+        self.dialog.title("Warning - High Frame Count")
+        self.dialog.geometry("500x180")
+        self.dialog.resizable(False, False)
+        
+        # Make it modal and bring to front
+        self.dialog.transient(parent.dialog)
+        self.dialog.grab_set()
+        self.dialog.lift()
+        self.dialog.focus_force()
+        
+        # Center the dialog on the parent dialog
+        self._center_dialog()
+        
+        self._create_ui()
+        
+    def _center_dialog(self):
+        """Center the dialog on the parent dialog"""
+        self.dialog.update_idletasks()
+        
+        # Get parent dialog position and size
+        parent_x = self.parent.dialog.winfo_x()
+        parent_y = self.parent.dialog.winfo_y()
+        parent_width = self.parent.dialog.winfo_width()
+        parent_height = self.parent.dialog.winfo_height()
+        
+        # Calculate center position
+        dialog_width = self.dialog.winfo_reqwidth()
+        dialog_height = self.dialog.winfo_reqheight()
+        
+        x = parent_x + (parent_width // 2) - (dialog_width // 2)
+        y = parent_y + (parent_height // 2) - (dialog_height // 2)
+        
+        self.dialog.geometry(f"+{x}+{y}")
+        
+    def _create_ui(self):
+        """Create the dialog UI"""
+        main_frame = tk.Frame(self.dialog)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Warning message
+        message = f"WARNING: Over 50 frames displayed ({self.frame_count} frames), this may be very laggy on older computers. Continue?"
+        
+        msg_label = tk.Label(main_frame, text=message, wraplength=460, justify="left", font=("Arial", 10))
+        msg_label.pack(pady=(0, 20))
+        
+        # Button frame
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill="x", pady=(0, 10))
+        
+        # Buttons
+        ballsy_btn = tk.Button(button_frame, text="Yeah I'm ballsy", command=self._on_ballsy, 
+                              bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), width=15)
+        ballsy_btn.pack(side="left", padx=(0, 10))
+        
+        good_btn = tk.Button(button_frame, text="Nah I'm good", command=self._on_good, 
+                            bg="#f44336", fg="white", font=("Arial", 10), width=15)
+        good_btn.pack(side="left")
+        
+        # Don't show again checkbox
+        self.dont_show_var = tk.BooleanVar()
+        checkbox = tk.Checkbutton(main_frame, text="Don't show again", 
+                                 variable=self.dont_show_var, font=("Arial", 9))
+        checkbox.pack(anchor="w")
+        
+        # Handle window close event
+        self.dialog.protocol("WM_DELETE_WINDOW", self._on_good)
+        
+    def _on_ballsy(self):
+        """User chose to proceed with high frame count"""
+        self.result = True
+        self.dont_show_again = self.dont_show_var.get()
+        self.dialog.destroy()
+        
+    def _on_good(self):
+        """User chose not to proceed with high frame count"""
+        self.result = False
+        self.dont_show_again = self.dont_show_var.get()
+        self.dialog.destroy()
+        
+    def show(self):
+        """Show the dialog and return the result"""
+        self.dialog.wait_window()
+        return self.result, self.dont_show_again
+
+
 class PaletteTool:
     def _warn_if_nonimpact(self, palette_type: str) -> bool:
         """Return True to proceed, False to cancel. Warn only for hair or 3rd job base."""
@@ -902,7 +1229,224 @@ class PaletteTool:
             with open(stats_path, 'w') as f:
                 json.dump(self.statistics.to_dict(), f, indent=4)
         except Exception as e:
-            print(f"Error saving statistics: {e}")
+            print(f"CONSOLE ERROR MSG: Error saving statistics: {e}")
+    
+    def _get_settings_path(self):
+        """Get the path to the settings file"""
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
+    
+    def _load_settings(self):
+        """Load settings from file"""
+        try:
+            settings_path = self._get_settings_path()
+            with open(settings_path, 'r') as f:
+                data = json.load(f)
+                
+                # Load global settings
+                global_settings = data.get('global', {})
+                self.use_bmp_export = global_settings.get('use_bmp_export', True)
+                self.use_portrait_export = global_settings.get('use_portrait_export', True)
+                self.cute_bg_option = global_settings.get('cute_bg_option', "both")
+                self.palette_format = global_settings.get('palette_format', "png")
+                self.show_frame_labels = global_settings.get('show_frame_labels', True)
+                self.use_right_click = global_settings.get('use_right_click', True)
+                self.live_pal_ui_mode = global_settings.get('live_pal_ui_mode', "Simple")
+                self.show_export_palette_button = global_settings.get('show_export_palette_button', False)
+                self.show_dev_buttons = global_settings.get('show_dev_buttons', False)
+                self.use_quick_export = global_settings.get('use_quick_export', False)
+                self.zoom_level = global_settings.get('zoom_level', "100%")
+                self.dont_show_excess_colors_prompt = global_settings.get('dont_show_excess_colors_prompt', False)
+                
+                # Initialize session-only settings (cleared when program closes)
+                self.session_dont_show_excess_colors_prompt = False
+                
+                # Load background color (convert list back to tuple)
+                bg_color = global_settings.get('background_color', [255, 255, 255])
+                self.background_color = tuple(bg_color) if isinstance(bg_color, list) else (255, 255, 255)
+                
+                # Load session state (last used character, frame, preview)
+                self.last_character = global_settings.get('last_character', None)
+                self.last_job = global_settings.get('last_job', None)
+                self.last_frame = global_settings.get('last_frame', 0)
+                self.last_preview_mode = global_settings.get('last_preview_mode', "single")
+                
+                # Store per-character settings for later use
+                self.per_character_settings = data.get('per_character', {})
+                
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Use defaults if file doesn't exist or is invalid
+            self.per_character_settings = {}
+            self.use_quick_export = False
+            # Initialize session state defaults
+            self.last_character = None
+            self.last_job = None
+            self.last_frame = 0
+            self.last_preview_mode = "single"
+    
+    def _save_settings(self):
+        """Save settings to file"""
+        try:
+            settings_path = self._get_settings_path()
+            
+            # Load existing settings to preserve per-character data
+            try:
+                with open(settings_path, 'r') as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                data = {'global': {}, 'per_character': {}}
+            
+            # Update global settings (preserve dont_show_excess_colors_prompt if it exists)
+            existing_global = data.get('global', {})
+            data['global'] = {
+                'use_bmp_export': self.use_bmp_export,
+                'use_portrait_export': self.use_portrait_export,
+                'cute_bg_option': self.cute_bg_option,
+                'palette_format': self.palette_format,
+                'show_frame_labels': self.show_frame_labels,
+                'use_right_click': self.use_right_click,
+                'live_pal_ui_mode': self.live_pal_ui_mode,
+                'show_export_palette_button': self.show_export_palette_button,
+                'show_dev_buttons': self.show_dev_buttons,
+                'use_quick_export': self.use_quick_export,
+                'zoom_level': self.zoom_var.get() if hasattr(self, 'zoom_var') else "100%",
+                'background_color': list(self.background_color),  # Convert tuple to list for JSON
+                'dont_show_excess_colors_prompt': getattr(self, 'dont_show_excess_colors_prompt', False),
+                'dont_show_all_mode_warning': existing_global.get('dont_show_all_mode_warning', False),
+                'dont_show_50_frames_warning': existing_global.get('dont_show_50_frames_warning', False),
+                # Session state
+                'last_character': self.current_character,
+                'last_job': self.current_job,
+                'last_frame': self.current_image_index,
+                'last_preview_mode': self.preview_var.get() if hasattr(self, 'preview_var') else "single"
+            }
+            
+            # Keep per-character settings
+            if not hasattr(self, 'per_character_settings'):
+                self.per_character_settings = {}
+            data['per_character'] = self.per_character_settings
+            
+            # Save to file
+            with open(settings_path, 'w') as f:
+                json.dump(data, f, indent=4)
+                
+        except Exception as e:
+            print(f"CONSOLE ERROR MSG: Error saving settings: {e}")
+    
+    def _get_all_mode_warning_preference(self):
+        """Get the 'don't show all mode warning' preference from settings"""
+        try:
+            settings_path = self._get_settings_path()
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+                    return settings.get('global', {}).get('dont_show_all_mode_warning', False)
+        except Exception:
+            pass
+        return False
+    
+    def _save_all_mode_warning_preference(self, dont_show):
+        """Save the 'don't show all mode warning' preference to settings"""
+        try:
+            settings_path = self._get_settings_path()
+            
+            # Load existing settings
+            try:
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                settings = {'global': {}, 'per_character': {}}
+            
+            # Ensure global key exists
+            if 'global' not in settings:
+                settings['global'] = {}
+            
+            # Update the preference
+            settings['global']['dont_show_all_mode_warning'] = dont_show
+            
+            # Save settings
+            with open(settings_path, 'w') as f:
+                json.dump(settings, f, indent=4)
+                
+        except Exception as e:
+            print(f"CONSOLE ERROR MSG: Error saving all mode warning preference: {e}")
+    
+    def _show_all_mode_warning(self):
+        """Show the all mode warning dialog and return user's choice"""
+        dialog = AllModeWarningDialog(self)
+        result, dont_show_again = dialog.show()
+        
+        # Save the "don't show again" preference if user checked it
+        if dont_show_again:
+            self._save_all_mode_warning_preference(True)
+        
+        return result
+    
+    def _get_50_frames_warning_preference(self):
+        """Get the 'don't show 50+ frames warning' preference from settings"""
+        try:
+            settings_path = self._get_settings_path()
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+                    return settings.get('global', {}).get('dont_show_50_frames_warning', False)
+        except Exception:
+            pass
+        return False
+    
+    def _save_50_frames_warning_preference(self, dont_show):
+        """Save the 'don't show 50+ frames warning' preference to settings"""
+        try:
+            settings_path = self._get_settings_path()
+            
+            # Load existing settings
+            try:
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                settings = {'global': {}, 'per_character': {}}
+            
+            # Ensure global key exists
+            if 'global' not in settings:
+                settings['global'] = {}
+            
+            # Update the preference
+            settings['global']['dont_show_50_frames_warning'] = dont_show
+            
+            # Save settings
+            with open(settings_path, 'w') as f:
+                json.dump(settings, f, indent=4)
+                
+        except Exception as e:
+            print(f"CONSOLE ERROR MSG: Error saving 50 frames warning preference: {e}")
+    
+    def _load_character_settings(self, char_id):
+        """Load per-character settings for the given character"""
+        if not hasattr(self, 'per_character_settings'):
+            self.per_character_settings = {}
+            
+        char_settings = self.per_character_settings.get(char_id, {})
+        
+        # Only load per-character settings (frame-related)
+        self.custom_frame_count = char_settings.get('custom_frame_count', 1)
+        self.custom_start_index = char_settings.get('custom_start_index', 0)
+        self.use_frame_choice = char_settings.get('use_frame_choice', False)
+        self.chosen_frame = char_settings.get('chosen_frame', 1)
+    
+    def _save_character_settings(self, char_id):
+        """Save per-character settings for the given character"""
+        if not hasattr(self, 'per_character_settings'):
+            self.per_character_settings = {}
+        
+        # Save per-character settings (frame-related only)
+        self.per_character_settings[char_id] = {
+            'custom_frame_count': self.custom_frame_count,
+            'custom_start_index': self.custom_start_index,
+            'use_frame_choice': self.use_frame_choice,
+            'chosen_frame': self.chosen_frame
+        }
+        
+        # Save to file
+        self._save_settings()
 
 
     def __init__(self, master):
@@ -911,7 +1455,7 @@ class PaletteTool:
         self._load_statistics()
         
         self.master = master
-        self.master.title("Fashion Previewer v4.0 - A CoraTO & Kyo Collab")
+        self.master.title("Fashion Previewer v4.1 - A CoraTO & Kyo Collab")
 
         # Dictionary to store frame range settings per character/job
         # Format: {char_id: {job: (frame_count, start_frame, end_frame)}}
@@ -927,15 +1471,16 @@ class PaletteTool:
         self.current_image_path = None
         self.current_image_index = 0
         
+        # Initialize default settings (will be overridden by _load_settings)
         # Custom preview settings
         self.custom_frame_count = 1
         self.custom_start_index = 0
-        self.use_bmp_export = False  # False = PNG, True = BMP
-        self.use_portrait_export = False  # Portrait mode (100x100)
-        self.cute_bg_option = "no_cute_bg"  # Options: "no_cute_bg", "cute_bg", "both"
-        self.palette_format = "pal"  # Options: "pal", "png"
+        self.use_bmp_export = True  # False = PNG, True = BMP
+        self.use_portrait_export = True  # Portrait mode (100x100)
+        self.cute_bg_option = "both"  # Options: "no_cute_bg", "cute_bg", "both"
+        self.palette_format = "png"  # Options: "pal", "png"
         self.show_frame_labels = True  # Whether to show frame numbers
-        self.use_right_click = False  # False = Left click, True = Right click for color saving
+        self.use_right_click = True  # True = Right click save (default), False = Left click save
         self.use_frame_choice = False  # Whether to use user-chosen frame for export
         self.chosen_frame = 1  # User's chosen frame for export (1-based)
         self.background_color = (255, 255, 255)  # Default background color (white)
@@ -943,16 +1488,25 @@ class PaletteTool:
         self._current_preview_mode = "single"  # Track current preview mode for intelligent switching
         self.colorpicker_active = False  # Track colorpicker mode for simple palette editor
         
+        # UI button visibility settings
+        self.show_export_palette_button = False  # Show Button checkbox state
+        self.show_dev_buttons = False  # Show Dev Buttons checkbox state
+        
+        # Load settings from file (will override defaults)
+        self._load_settings()
+        
         # HSL adjustment settings with defaults
         self._gradient_adjust_hue = True
         self._gradient_adjust_saturation = False
-        self._gradient_adjust_lightness = False
+        self._gradient_adjust_value = False
         
         # Get root directory for relative paths
         self.root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
         # Load base images
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         myshop_base_path = os.path.join(script_dir, "nonremovable_assets", "myshop_base.bmp")
         try:
             self.myshop_base = Image.open(myshop_base_path)
@@ -973,7 +1527,7 @@ class PaletteTool:
         self.job_var = tk.StringVar()
         self.hair_var = tk.StringVar()
         self.third_job_var = tk.StringVar()
-        self.zoom_var = tk.StringVar(value="100%")
+        self.zoom_var = tk.StringVar(value=getattr(self, 'zoom_level', "100%"))
         self.fashion_vars = {}  # Track fashion selection variables
         
         # Load all available data
@@ -982,8 +1536,74 @@ class PaletteTool:
         # Create UI
         self.create_ui()
         
-        # Auto-load first character if available
-        if self.available_characters:
+        # Try to restore last session state, otherwise auto-load first character
+        restored = False
+        if hasattr(self, 'last_character') and self.last_character and hasattr(self, 'last_job') and self.last_job:
+            # Try to restore the saved character and job
+            if self.last_character in self.available_characters:
+                if self.last_character in CHARACTER_MAPPING:
+                    char_info = CHARACTER_MAPPING[self.last_character]
+                    
+                    # Directly set the character and job without triggering on_character_change
+                    self.current_character = self.last_character
+                    self.current_job = char_info['job']
+                    self.character_var.set(char_info['name'])
+                    self.job_var.set(char_info['job'])
+                    
+                    # Set restoration flag to prevent saving during restoration
+                    self._is_restoring_session = True
+                    
+                    # Load character settings and data
+                    self._load_character_settings(self.last_character)
+                    
+                    # Populate frame_range_settings for the restored character/job combo
+                    # This is needed for custom preview mode to work properly
+                    if self.current_character not in self.frame_range_settings:
+                        self.frame_range_settings[self.current_character] = {}
+                    
+                    # Store the custom frame settings for this character/job
+                    self.frame_range_settings[self.current_character][char_info['job']] = (
+                        self.custom_frame_count,
+                        self.custom_start_index,
+                        self.custom_start_index + self.custom_frame_count - 1
+                    )
+                    
+                    # Track character view
+                    self.statistics.add_character_view(self.last_character, char_info["job"])
+                    self._save_statistics()
+                    
+                    # Update UI sections
+                    self.update_third_job_section()
+                    self.update_hair_section()
+                    self.update_fashion_section()
+                    
+                    # Load palettes and update display
+                    self.load_palettes()
+                    self.update_zoom_combo_state()
+                    
+                    # Restore the last viewed frame if valid
+                    if hasattr(self, 'last_frame') and self.last_frame is not None:
+                        # Check if character has images loaded
+                        if self.current_character in self.character_images:
+                            images = self.character_images[self.current_character]
+                            if images and 0 <= self.last_frame < len(images):
+                                self.current_image_index = self.last_frame
+                                # Load the specific frame
+                                self.load_image_from_path(images[self.current_image_index])
+                    
+                    # Update display to show the restored state
+                    self.update_image_display()
+                    
+                    # Update navigation buttons to enable them
+                    self.update_navigation_buttons()
+                    
+                    # Clear restoration flag - now navigation can save settings
+                    self._is_restoring_session = False
+                    
+                    restored = True
+        
+        # If restoration failed, auto-load first character if available
+        if not restored and self.available_characters:
             first_char = self.available_characters[0]
             if first_char in CHARACTER_MAPPING:
                 char_info = CHARACTER_MAPPING[first_char]
@@ -993,6 +1613,19 @@ class PaletteTool:
         
         # Initialize zoom combo state based on preview mode (after character is loaded)
         self.update_zoom_combo_state()
+        
+        # Final navigation button update after all initialization is complete
+        if hasattr(self, 'update_navigation_buttons'):
+            self.update_navigation_buttons()
+        
+        # Set up window close handler to save settings and statistics
+        def on_app_close():
+            """Save settings and statistics before closing"""
+            self._save_settings()
+            self._save_statistics()
+            self.master.destroy()
+        
+        self.master.protocol("WM_DELETE_WINDOW", on_app_close)
 
     # --- Smooth HSV slider: tiny debouncer to prevent jitter ----
     def _hsv_debounced_change(self, *_):
@@ -1150,7 +1783,9 @@ class PaletteTool:
                             self.available_characters.append(char_folder)
         
         # Load fashion palettes from nonremovable_assets/vanilla_pals/fashion folder
-        fashion_path = os.path.join("nonremovable_assets", "vanilla_pals", "fashion")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        fashion_path = os.path.join(script_dir, "nonremovable_assets", "vanilla_pals", "fashion")
         if os.path.exists(fashion_path):
             for file in os.listdir(fashion_path):
                 if file.lower().endswith('.pal'):
@@ -1168,14 +1803,14 @@ class PaletteTool:
                                 data = f.read()
                             
                             if len(data) != PALETTE_SIZE * 3:
-                                print(f"Warning: Invalid fashion palette file {file} - incorrect size: {len(data)} bytes")
+                                print(f"CONSOLE ERROR MSG: Invalid fashion palette file {file} - incorrect size: {len(data)} bytes")
                                 continue
                             
                             # Validate that all bytes are valid (0-255)
                             valid_file = True
                             for i in range(PALETTE_SIZE * 3):
                                 if not (0 <= data[i] <= 255):
-                                    print(f"Warning: Invalid fashion palette file {file} - invalid byte at position {i}")
+                                    print(f"CONSOLE ERROR MSG: Invalid fashion palette file {file} - invalid byte at position {i}")
                                     valid_file = False
                                     break
                             
@@ -1183,7 +1818,7 @@ class PaletteTool:
                                 self.fashion_palettes[char_id].append(palette_path)
                             
                         except Exception as e:
-                            print(f"Warning: Failed to load fashion palette {file}: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load fashion palette {file}: {e}")
                             continue
         
         # Load custom fashion palettes from root/exports/custom_pals/fashion AND backwards compatibility
@@ -1199,14 +1834,10 @@ class PaletteTool:
         
         for custom_pals_path in custom_fashion_paths:
             path_type = "new" if "custom_pals" in custom_pals_path and "fashion" in custom_pals_path else "legacy"
-            print(f"Looking for custom fashion palettes at: {os.path.abspath(custom_pals_path)} ({path_type})")
             
             if not os.path.exists(custom_pals_path):
                 if path_type == "new":
                     os.makedirs(custom_pals_path, exist_ok=True)
-                    print("Directory created (was missing)")
-                else:
-                    print("Legacy directory does not exist (this is normal)")
                 continue
             for file in os.listdir(custom_pals_path):
                 if file.lower().endswith('.pal'):
@@ -1225,27 +1856,27 @@ class PaletteTool:
                                 data = f.read()
                             
                             if len(data) != PALETTE_SIZE * 3:
-                                print(f"Warning: Invalid custom fashion palette file {file} - incorrect size: {len(data)} bytes")
                                 continue
                             
                             # Validate that all bytes are valid (0-255)
                             valid_file = True
                             for i in range(PALETTE_SIZE * 3):
                                 if not (0 <= data[i] <= 255):
-                                    print(f"Warning: Invalid custom fashion palette file {file} - invalid byte at position {i}")
+                                    print(f"CONSOLE ERROR MSG: Invalid custom fashion palette file {file} - invalid byte at position {i}")
                                     valid_file = False
                                     break
                             
                             if valid_file:
                                 self.fashion_palettes[char_id].append(palette_path)
-                                print(f"Loaded custom fashion palette: {file} from {path_type} directory")
                             
                         except Exception as e:
-                            print(f"Warning: Failed to load custom fashion palette {file}: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load custom fashion palette {file}: {e}")
                             continue
         
         # Load hair palettes from nonremovable_assets/vanilla_pals/hair folder
-        hair_path = os.path.join("nonremovable_assets", "vanilla_pals", "hair")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        hair_path = os.path.join(script_dir, "nonremovable_assets", "vanilla_pals", "hair")
         if os.path.exists(hair_path):
             for file in os.listdir(hair_path):
                 if file.lower().endswith('.pal'):
@@ -1263,19 +1894,19 @@ class PaletteTool:
                                 data = f.read()
                             
                             if len(data) != PALETTE_SIZE * 3:
-                                print(f"Warning: Invalid hair palette file {file} - incorrect size: {len(data)} bytes")
+                                print(f"CONSOLE ERROR MSG: Invalid hair palette file {file} - incorrect size: {len(data)} bytes")
                                 continue
                             
                             # Validate that all bytes are valid (0-255)
                             for i in range(PALETTE_SIZE * 3):
                                 if not (0 <= data[i] <= 255):
-                                    print(f"Warning: Invalid hair palette file {file} - invalid byte at position {i}")
+                                    print(f"CONSOLE ERROR MSG: Invalid hair palette file {file} - invalid byte at position {i}")
                                     continue
                             
                             self.hair_palettes[char_id].append(palette_path)
                             
                         except Exception as e:
-                            print(f"Warning: Failed to load hair palette {file}: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load hair palette {file}: {e}")
                             continue
         
         # Load custom hair palettes from exports/custom_pals/hair folder
@@ -1299,24 +1930,25 @@ class PaletteTool:
                                 data = f.read()
                             
                             if len(data) != PALETTE_SIZE * 3:
-                                print(f"Warning: Invalid custom hair palette file {file} - incorrect size: {len(data)} bytes")
+                                print(f"CONSOLE ERROR MSG: Invalid custom hair palette file {file} - incorrect size: {len(data)} bytes")
                                 continue
                             
                             # Validate that all bytes are valid (0-255)
                             for i in range(PALETTE_SIZE * 3):
                                 if not (0 <= data[i] <= 255):
-                                    print(f"Warning: Invalid custom hair palette file {file} - invalid byte at position {i}")
+                                    print(f"CONSOLE ERROR MSG: Invalid custom hair palette file {file} - invalid byte at position {i}")
                                     continue
                             
                             self.hair_palettes[char_id].append(palette_path)
-                            print(f"Loaded custom hair palette: {file}")
                             
                         except Exception as e:
-                            print(f"Warning: Failed to load custom hair palette {file}: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load custom hair palette {file}: {e}")
                             continue
         
         # Load 3rd job base fashion palettes
-        third_job_path = os.path.join("nonremovable_assets", "vanilla_pals", "3rd_default_fashion")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        third_job_path = os.path.join(script_dir, "nonremovable_assets", "vanilla_pals", "3rd_default_fashion")
         if os.path.exists(third_job_path):
             for char_folder in os.listdir(third_job_path):
                 if char_folder.startswith("chr") and os.path.isdir(os.path.join(third_job_path, char_folder)):
@@ -1331,19 +1963,19 @@ class PaletteTool:
                                     data = f.read()
                                 
                                 if len(data) != PALETTE_SIZE * 3:
-                                    print(f"Warning: Invalid 3rd job palette file {file} - incorrect size: {len(data)} bytes")
+                                    print(f"CONSOLE ERROR MSG: Invalid 3rd job palette file {file} - incorrect size: {len(data)} bytes")
                                     continue
                                 
                                 # Validate that all bytes are valid (0-255)
                                 for i in range(PALETTE_SIZE * 3):
                                     if not (0 <= data[i] <= 255):
-                                        print(f"Warning: Invalid 3rd job palette file {file} - invalid byte at position {i}")
+                                        print(f"CONSOLE ERROR MSG: Invalid 3rd job palette file {file} - invalid byte at position {i}")
                                         continue
                                 
                                 palettes.append(palette_path)
                                 
                             except Exception as e:
-                                print(f"Warning: Failed to load 3rd job palette {file}: {e}")
+                                print(f"CONSOLE ERROR MSG: Failed to load 3rd job palette {file}: {e}")
                                 continue
                     if palettes:
                         self.third_job_palettes[char_folder] = sorted(palettes)
@@ -1612,7 +2244,9 @@ class PaletteTool:
         preview_frame.pack(side="right", padx=(0, 10))
         
         tk.Label(preview_frame, text="Preview:").pack(side="left")
-        self.preview_var = tk.StringVar(value="single")
+        # Use saved preview mode from settings
+        initial_preview_mode = getattr(self, 'last_preview_mode', 'single')
+        self.preview_var = tk.StringVar(value=initial_preview_mode)
         tk.Radiobutton(preview_frame, text="Single", variable=self.preview_var, 
                       value="single", command=self.on_preview_mode_change).pack(side="left", padx=(5, 0))
         tk.Radiobutton(preview_frame, text="All", variable=self.preview_var, 
@@ -1793,13 +2427,19 @@ class PaletteTool:
         self.export_button.pack(side="left", padx=(0, 5))
         # Initial button state based on export format
         self.update_export_button_text()
-        tk.Button(button_frame, text="Export All Frames", command=self.export_all_frames).pack(side="left", padx=(0, 5))
-        tk.Button(button_frame, text="Export Palette", command=self.export_pal).pack(side="left", padx=(0, 5))
-        tk.Button(button_frame, text="Live Edit Palette", command=self.open_live_palette_editor).pack(side="left", padx=(0, 5))
-        tk.Button(button_frame, text="Icon Editor", command=self._open_icon_editor).pack(side="left", padx=(0, 5))
+        self.export_all_frames_button = tk.Button(button_frame, text="Export All Frames", command=self.export_all_frames)
+        self.export_all_frames_button.pack_forget()  # Hidden by default
+        self.export_palette_button = tk.Button(button_frame, text="Export Palette", command=self.export_pal)
+        self.export_palette_button.pack_forget()  # Hidden by default
+        self.live_edit_button = tk.Button(button_frame, text="Live Edit Palette", command=self.open_live_palette_editor)
+        self.live_edit_button.pack(side="left", padx=(0, 5))
+        self.icon_editor_button = tk.Button(button_frame, text="Icon Editor", command=self._open_icon_editor)
+        self.icon_editor_button.pack(side="left", padx=(0, 5))
         tk.Button(button_frame, text="Reset to Original", command=self.reset_to_original).pack(side="left", padx=(0, 5))
-        tk.Button(button_frame, text="Debug Info", command=self.debug_info).pack(side="left", padx=(0, 5))
-        tk.Button(button_frame, text="Statistics", command=self.show_statistics).pack(side="left", padx=(0, 5))
+        self.debug_info_button = tk.Button(button_frame, text="Debug Info", command=self.debug_info)
+        self.debug_info_button.pack_forget()  # Hidden by default
+        self.statistics_button = tk.Button(button_frame, text="Statistics", command=self.show_statistics)
+        self.statistics_button.pack(side="left", padx=(0, 5))
         
         # Background color picker (right side of button bar)
         bg_color_frame = tk.Frame(button_frame)
@@ -1840,6 +2480,10 @@ class PaletteTool:
                     
         # Reset custom frame settings when changing character
         if hasattr(self, 'current_character') and self.current_character != char_id:
+            # Save per-character settings before switching
+            if self.current_character:
+                self._save_character_settings(self.current_character)
+            
             # Store current settings before changing
             if self.preview_var.get() == "custom" and hasattr(self, 'custom_frame_count'):
                 current_job = self.job_var.get() if hasattr(self, 'job_var') else None
@@ -1856,6 +2500,9 @@ class PaletteTool:
             self.current_character = char_id
             self.current_job = char_info["job"]
             self.job_var.set(self.current_job)
+            
+            # Load per-character settings for this character
+            self._load_character_settings(char_id)
             
             # Track character view
             self.statistics.add_character_view(char_id, char_info["job"])
@@ -1876,9 +2523,6 @@ class PaletteTool:
             
             # Clear palette layers
             self.palette_layers = []
-            
-            # Reset custom preview settings for new character
-            self.custom_start_index = 0
             
             # Update all UI sections
             self.update_third_job_section()
@@ -1933,6 +2577,9 @@ class PaletteTool:
                 
             self.load_image_from_path(images[self.current_image_index])
             self.update_navigation_buttons()
+            
+            # Save current frame position
+            self._save_settings()
     
     def prev_custom_frames(self):
         """Navigate to previous set of custom frames"""
@@ -2013,6 +2660,9 @@ class PaletteTool:
             # Track frame navigation
             self.statistics.frames_skipped += 1
             self._save_statistics()
+            
+            # Save current frame position
+            self._save_settings()
     
     def next_custom_frames(self):
         """Navigate to next set of custom frames"""
@@ -2150,6 +2800,9 @@ class PaletteTool:
             self.current_character = char_id
             self.current_job = job_name
             
+            # Load per-character settings for this character
+            self._load_character_settings(char_id)
+            
             # Clear current image display first
             self.canvas.delete("all")
             self.original_image = None
@@ -2164,9 +2817,6 @@ class PaletteTool:
             
             # Clear palette layers
             self.palette_layers = []
-            
-            # Reset custom preview settings for new character
-            self.custom_start_index = 0
             
             # Update all UI sections
             self.update_third_job_section()
@@ -2186,7 +2836,9 @@ class PaletteTool:
             if char_id in self.character_images and self.character_images[char_id]:
                 self.current_image_index = 0
                 self.load_character_image()
-                self.update_navigation_buttons()
+            
+            # Update navigation buttons after job change (always, not just when loading image)
+            self.update_navigation_buttons()
             
             # Ensure zoom state is updated after job change
             self.update_zoom_combo_state()
@@ -2201,6 +2853,8 @@ class PaletteTool:
         self.third_job_frame.pack_forget()
         
         if not hasattr(self, 'current_character') or not self.current_character:
+            # Reset fashion frame to normal height when no third job
+            self._adjust_layout_for_third_job(False)
             return
         
         char_id = self.current_character
@@ -2211,10 +2865,14 @@ class PaletteTool:
         
         # For 1st and 2nd jobs, hide the 3rd job section entirely
         if char_info["job"] in ["1st Job", "2nd Job"]:
+            # Reset fashion frame to normal height when no third job
+            self._adjust_layout_for_third_job(False)
             return
         else:
             # Show the 3rd job frame for 3rd jobs - pack it below the PanedWindow
             self.third_job_frame.pack(fill="x", pady=(5, 0))
+            # Adjust layout to accommodate third job frame
+            self._adjust_layout_for_third_job(True)
         
         # Special handling for Paula characters - they don't have 3rd job base fashion
         if char_id in ["chr025", "chr026", "chr027"]:
@@ -2239,6 +2897,20 @@ class PaletteTool:
             else:
                 self.third_job_var.set("NONE")
 
+    def _adjust_layout_for_third_job(self, has_third_job):
+        """Adjust the layout to accommodate the third job frame"""
+        if has_third_job:
+            # Reduce fashion frame height to make room for third job frame
+            self.fashion_frame.configure(height=240)
+            self.fashion_canvas.configure(height=240)
+            # Keep the same minimum window size - just adjust the internal layout
+            self.master.minsize(900, 650)
+        else:
+            # Restore normal fashion frame height
+            self.fashion_frame.configure(height=360)
+            self.fashion_canvas.configure(height=360)
+            # Keep the same minimum window size
+            self.master.minsize(900, 650)
 
     def get_palette_character_id(self, char_id):
         """Get the character ID to use for palettes (handles Paula mapping)"""
@@ -2278,7 +2950,7 @@ class PaletteTool:
                 "fashion_3": "Sash Belt", 
                 "fashion_4": "Warmups",
                 "fashion_5": "Wraps",
-                "fashion_6": "Hair Tie"
+                "fashion_6": "Hood Tie"
             },
             "004": {  # chr004
                 "fashion_1": "Robe",
@@ -2794,9 +3466,10 @@ class PaletteTool:
 
     def load_image_from_path(self, path):
         """Load image from a specific path"""
-        # Track frame preview
+        # Track frame preview (but don't save during startup restoration)
         self.statistics.frames_previewed += 1
-        self._save_statistics()
+        if not getattr(self, '_is_restoring_session', False):
+            self._save_statistics()
         try:
             img = Image.open(path)
             
@@ -2848,6 +3521,16 @@ class PaletteTool:
         new_mode = self.preview_var.get()
         old_mode = getattr(self, '_current_preview_mode', 'single')
         
+        # Check if switching to "all" mode and show warning if needed
+        if new_mode == "all" and old_mode != "all":
+            if not self._get_all_mode_warning_preference():
+                # Show warning dialogue
+                result = self._show_all_mode_warning()
+                if not result:
+                    # User chose not to proceed, revert to previous mode
+                    self.preview_var.set(old_mode)
+                    return
+        
         # If switching to custom mode, set intelligent defaults based on previous mode
         if new_mode == "custom" and old_mode != "custom":
             # Check if there are stored settings for this character/job
@@ -2878,6 +3561,9 @@ class PaletteTool:
         
         self.update_zoom_combo_state()
         self.update_image_display()
+        
+        # Update navigation buttons after preview mode change
+        self.update_navigation_buttons()
         
         # Add a delayed update to ensure zoom state is set correctly after UI updates
         self.master.after(100, self.update_zoom_combo_state)
@@ -2947,7 +3633,18 @@ class PaletteTool:
         
         if dialog.result is not None:
             # Handle both old and new result tuple formats for backward compatibility
-            if len(dialog.result) >= 11:
+            if len(dialog.result) >= 14:
+                frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_choice, chosen_frame, palette_format, cute_bg, live_pal_ui, show_export_pal, show_dev, show_excess_prompt = dialog.result
+                self.live_pal_ui_mode = live_pal_ui
+                self.show_export_palette_button = show_export_pal
+                self.show_dev_buttons = show_dev
+                self.dont_show_excess_colors_prompt = not show_excess_prompt  # Invert for storage
+            elif len(dialog.result) >= 13:
+                frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_choice, chosen_frame, palette_format, cute_bg, live_pal_ui, show_export_pal, show_dev = dialog.result
+                self.live_pal_ui_mode = live_pal_ui
+                self.show_export_palette_button = show_export_pal
+                self.show_dev_buttons = show_dev
+            elif len(dialog.result) >= 11:
                 frame_count, start_frame, end_frame, use_bmp, show_labels, use_portrait, use_choice, chosen_frame, palette_format, cute_bg, live_pal_ui = dialog.result
                 self.live_pal_ui_mode = live_pal_ui
             else:
@@ -4964,23 +5661,35 @@ class PaletteTool:
         bg_img.paste(fg_img, (0, 0), mask_img)
         return bg_img
         
-    def export_background_bmp(self):
-        """Export current image as BMP with background color"""
+    def export_background_bmp(self, frame=None, force_portrait=False):
+        """Export current image as BMP with background color
+        
+        Args:
+            frame: Optional frame to export instead of current frame
+            force_portrait: If True, forces portrait mode regardless of settings"""
         if not self.original_image:
             messagebox.showinfo("Notice", "No image loaded.")
             return
             
-        # Debug: Print export settings
+        # Save current state
+        current_layers = [layer.active for layer in self.palette_layers]
             
         # Get base paths
         root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         export_dir = os.path.join(root_dir, "exports", "images")
         
         # Get the frame index for export (respects user choice)
-        frame_index = self.get_current_displayed_frame()
+        frame_index = frame if frame is not None else self.get_current_displayed_frame()
         
-        # Get base file name without extension (1-based numbering for user clarity)
-        base_name = f"{self.current_character}_{frame_index + 1:03d}"
+        # Save current portrait setting if forcing portrait
+        old_portrait = self.use_portrait_export
+        if force_portrait:
+            self.use_portrait_export = True
+        
+        # Get base file name without extension using view count from statistics
+        key = f"{self.current_character}_{self.current_job}"
+        view_count = self.statistics.character_edits.get(key, {'views': 0})['views']
+        base_name = f"{self.current_character}_view{view_count}"
         
         # Get the current image with all palettes applied
         if not hasattr(self, 'update_single_frame_display'):
@@ -5012,7 +5721,7 @@ class PaletteTool:
             
             # Get save paths for each format
             regular_path = file_path  # Use exactly what the user chose
-            portrait_path = os.path.join(target_dir, f"{base_filename}_illu.bmp")
+            portrait_path = os.path.join(target_dir, f"{base_filename}_illu.bmp")  # Just _illu for regular portraits
             
             # Regular BMP export
             def save_regular():
@@ -5040,7 +5749,7 @@ class PaletteTool:
                         # Create image with user's background color
                         regular_img = Image.new("RGB", (105, 105), self.background_color)
                         regular_img.paste(img, (x, y), mask)
-                        regular_img.save(portrait_path.replace(".bmp", "_regular.bmp"), "BMP", quality=24)
+                        regular_img.save(portrait_path.replace(".bmp", "_illu.bmp"), "BMP", quality=24)
                         outputs.append("Portrait (105x105) with Background Color")
                     
                     # Handle cute background output
@@ -5061,7 +5770,7 @@ class PaletteTool:
                         
                         # Paste the frame onto the base image
                         cute_img.paste(img, (x, y), mask)
-                        cute_img.save(portrait_path.replace(".bmp", "_cute.bmp"), "BMP", quality=24)
+                        cute_img.save(portrait_path.replace(".bmp", "_illu_cute.bmp"), "BMP", quality=24)
                         outputs.append("Portrait (105x105) with Cute BG")
                     
                     return " & ".join(outputs)
@@ -5087,8 +5796,24 @@ class PaletteTool:
             else:
                 error_msg = "Failed to export any files:\n- " + "\n- ".join(errors)
                 messagebox.showerror("Export Failed", error_msg)
+                
+            # Restore layer state
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
+                
+            # Restore portrait setting if it was forced
+            if force_portrait:
+                self.use_portrait_export = old_portrait
             
         except Exception as e:
+            # Restore layer state even on error
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
+                
+            # Restore portrait setting if it was forced
+            if force_portrait:
+                self.use_portrait_export = old_portrait
+                
             messagebox.showerror("Error", f"Failed to export image: {e}")
             
     def export_transparent_png(self):
@@ -5096,6 +5821,9 @@ class PaletteTool:
         if not self.original_image:
             messagebox.showinfo("Notice", "Please load a character image first.")
             return
+            
+        # Save current state
+        current_layers = [layer.active for layer in self.palette_layers]
         
         # Get base paths
         root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -5104,8 +5832,10 @@ class PaletteTool:
         # Get the frame index for export (respects user choice)
         frame_index = self.get_current_displayed_frame()
         
-        # Get base file name without extension (1-based numbering for user clarity)
-        base_name = f"{self.current_character}_{frame_index + 1:03d}"
+        # Get base file name without extension using view count from statistics
+        key = f"{self.current_character}_{self.current_job}"
+        view_count = self.statistics.character_edits.get(key, {'views': 0})['views']
+        base_name = f"{self.current_character}_view{view_count}"
         
         # Get save path for regular PNG
         default_path = os.path.join(export_dir, f"{base_name}.png")
@@ -5200,7 +5930,7 @@ class PaletteTool:
                         frame_rgba.putdata(frame_data)
                         # Paste the frame onto the transparent base
                         portrait_img.paste(frame_rgba, (x, y), mask)
-                        # Save as PNG with _illu suffix
+                        # Save as PNG with _illu suffix (no "regular" suffix)
                         portrait_path = os.path.join(target_dir, f"{base_filename}_illu.png")
                         portrait_img.save(portrait_path, "PNG")
                         outputs.append("Portrait (105x105) with Transparency")
@@ -5231,8 +5961,8 @@ class PaletteTool:
                         
                         # Paste the frame onto the base image
                         cute_img.paste(frame_rgba, (x, y), mask)
-                        # Save as PNG with _cute suffix
-                        cute_path = os.path.join(target_dir, f"{base_filename}_cute.png")
+                        # Save as PNG with _illu_cute suffix
+                        cute_path = os.path.join(target_dir, f"{base_filename}_illu_cute.png")
                         cute_img.save(cute_path, "PNG")
                         outputs.append("Portrait (105x105) with Cute BG")
                     
@@ -5259,8 +5989,15 @@ class PaletteTool:
             else:
                 error_msg = "Failed to export any files:\n- " + "\n- ".join(errors)
                 messagebox.showerror("Export Failed", error_msg)
+                
+            # Restore layer state
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
             
         except Exception as e:
+            # Restore layer state even on error
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
             messagebox.showerror("Error", f"Export failed: {e}")
 
     def export_all_frames(self):
@@ -5268,6 +6005,9 @@ class PaletteTool:
         if not hasattr(self, 'current_character') or not self.current_character:
             messagebox.showinfo("Notice", "Please select a character first.")
             return
+            
+        # Save current state
+        current_layers = [layer.active for layer in self.palette_layers]
         
         if not self.character_images or self.current_character not in self.character_images:
             messagebox.showinfo("Notice", "No images found for this character.")
@@ -5490,13 +6230,20 @@ class PaletteTool:
                     exported_count += 1
                     
                 except Exception as e:
-                    print(f"Error processing {image_path}: {e}")
+                    print(f"CONSOLE ERROR MSG: Error processing {image_path}: {e}")
                     continue
             
             progress_window.destroy()
             messagebox.showinfo("Success", f"Exported {exported_count}/{total_images} frames to:\n{output_dir}")
             
+            # Restore layer state
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
+            
         except Exception as e:
+            # Restore layer state even on error
+            for layer, was_active in zip(self.palette_layers, current_layers):
+                layer.active = was_active
             messagebox.showerror("Error", f"Export failed: {e}")
 
     def update_bg_color_button(self):
@@ -5537,17 +6284,18 @@ class PaletteTool:
             messagebox.showinfo("Notice", "No active palette layers to export.")
             return
         
-        # Set initial directory to exports/custom_pals/fashion in root directory
+        # Set initial directory based on palette format
         root_dir = getattr(self, "root_dir", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        initial_dir = os.path.join(root_dir, "exports", "custom_pals", "fashion")
         
-        # Set file type based on palette format
+        # Set file type and initial directory based on palette format
         if self.palette_format == "pal":
             file_types = [("VGA 24-bit Palette Files", "*.pal")]
             default_ext = ".pal"
+            initial_dir = os.path.join(root_dir, "exports", "full_pals")
         else:  # png
             file_types = [("PNG Files", "*.png")]
             default_ext = ".png"
+            initial_dir = os.path.join(root_dir, "exports", "images")
         
         path = filedialog.asksaveasfilename(
             defaultextension=default_ext,
@@ -5663,6 +6411,10 @@ class PaletteTool:
             # Store UI mode before warning dialog
             current_ui_mode = getattr(self, 'live_pal_ui_mode', 'Simple')
             if not self._warn_if_nonimpact(getattr(default_layer, "palette_type", "")):
+                # If user clicked "No", bring existing live editor to front if it exists
+                if hasattr(self, '_live_editor_window') and self._live_editor_window and self._live_editor_window.winfo_exists():
+                    self._live_editor_window.lift()
+                    self._live_editor_window.focus_force()
                 return
             # Restore UI mode after warning dialog
             self.live_pal_ui_mode = current_ui_mode
@@ -5713,7 +6465,7 @@ class PaletteTool:
 
         self._live_editor_window = tk.Toplevel(self.master)
         self._live_editor_window.title("Live Edit Palette")
-        self._live_editor_window.geometry("800x450")  # 20px wider window
+        self._live_editor_window.geometry("810x450")  # 30px wider window
         self._live_editor_window.resizable(False, False)
         
         # Restore the UI mode that was stored earlier
@@ -5739,7 +6491,7 @@ class PaletteTool:
                 if hasattr(self, '_live_temp_palette_cache'):
                     delattr(self, '_live_temp_palette_cache')
             
-            self.refresh_custom_pals(update_ui=False)  # Don't update UI to preserve radio button selections
+            self.refresh_custom_pals(update_ui=True)  # Update UI to refresh custom pals display
             
             # Update the main display to reflect restored palette colors
             if colors_were_restored:
@@ -5749,6 +6501,9 @@ class PaletteTool:
             
             self._live_editor_window.destroy()
             self._live_editor_window = None  # Clear the instance variable
+            
+            # Re-enable icon editor button when live editor closes
+            self._update_icon_editor_button_state()
         
         self._live_editor_window.protocol("WM_DELETE_WINDOW", on_window_close)
 
@@ -5757,6 +6512,7 @@ class PaletteTool:
         tk.Label(top, text="Edit which:").pack(side="left")
         tk.OptionMenu(top, self._live_target_name, *names, command=self._live_on_target_changed).pack(side="left", padx=(4,8))
         tk.Checkbutton(top, text="Multi-select", variable=self._multi_select, command=self._live_multi_toggled).pack(side="left", padx=(8,8))
+        tk.Button(top, text="Select All", command=self._live_select_all).pack(side="left", padx=(0,5))
         tk.Button(top, text="Clear Sel", command=self._live_clear_selection).pack(side="left")
         self._sel_count_lbl = tk.Label(top, text="(0 selected)"); self._sel_count_lbl.pack(side="left", padx=(6,0))
         tk.Button(top, text="Save Item .pal", command=self._live_save_item_pal).pack(side="left", padx=(12,8))
@@ -5765,16 +6521,14 @@ class PaletteTool:
         # Body - use grid for better control over proportions
         body = tk.Frame(self._live_editor_window); body.pack(fill="both", expand=True, padx=1, pady=0)
         body.grid_rowconfigure(0, weight=1)  # Allow row to expand
-        body.grid_columnconfigure(0, weight=8)  # Left column gets 80% (20px wider)
-        body.grid_columnconfigure(1, weight=2)  # Right column gets 20% (20px smaller)
-
+        
         # Ensure UI mode is preserved right before building UI
         self.live_pal_ui_mode = current_ui_mode
         
         # Swatches grid (left) - adjust width based on mode
         if self.live_pal_ui_mode == "Simple":
-            grid = tk.Frame(body, width=410); grid.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
-            grid.grid_propagate(False)  # Maintain fixed width for Simple mode
+            grid = tk.Frame(body); grid.grid(row=0, column=0, padx=(0,0), pady=0, sticky="nsew")
+            # Let the grid expand to fill the allocated column space
         else:
             grid = tk.Frame(body); grid.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
         
@@ -5789,9 +6543,8 @@ class PaletteTool:
 
         # Picker panel (right) - adjust width based on mode
         if self.live_pal_ui_mode == "Simple":
-            panel = tk.Frame(body, width=380)  # No border in Simple mode
+            panel = tk.Frame(body, width=500)  # No border in Simple mode (120px wider for saved colors)
             panel.grid(row=0, column=1, padx=(4,0), pady=0, sticky="nsew")
-            panel.grid_propagate(False)  # Maintain fixed width for Simple mode
         else:
             panel = tk.LabelFrame(body, text="Color Picker", padx=2, pady=1)
             panel.grid(row=0, column=1, padx=(4,0), pady=0, sticky="nsew")
@@ -5824,19 +6577,20 @@ class PaletteTool:
             sc = tk.Scale(panel, from_=0, to=255, orient="horizontal", variable=v,
                           command=lambda *_: self._live_slider_changed())
             sc.grid(row=row, column=1, columnspan=3, sticky="we", pady=(8,0))
-        panel.grid_columnconfigure(2, weight=1)
+        # Configure columns to properly accommodate all widgets including gradient button
+        panel.grid_columnconfigure(1, weight=1)  # Make column 1 expandable for hex entry
 
                         
         # HSV controls - minimal spacing
         tk.Label(panel, text="Hue").grid(row=5, column=0, sticky="w", pady=(2,0))
         self._picker_h = tk.Scale(panel, from_=0, to=360, orient="horizontal", command=lambda *_: self._hsv_debounced_change())
-        self._picker_h.grid(row=5, column=1, columnspan=3, sticky="we", pady=(1,0))
+        self._picker_h.grid(row=5, column=1, columnspan=5, sticky="we", pady=(1,0))
         tk.Label(panel, text="Sat").grid(row=6, column=0, sticky="w", pady=(1,0))
         self._picker_s = tk.Scale(panel, from_=0, to=100, orient="horizontal", command=lambda *_: self._hsv_debounced_change())
-        self._picker_s.grid(row=6, column=1, columnspan=3, sticky="we", pady=(1,0))
+        self._picker_s.grid(row=6, column=1, columnspan=5, sticky="we", pady=(1,0))
         tk.Label(panel, text="Val").grid(row=7, column=0, sticky="w", pady=(1,0))
         self._picker_v = tk.Scale(panel, from_=0, to=100, orient="horizontal", command=lambda *_: self._hsv_debounced_change())
-        self._picker_v.grid(row=7, column=1, columnspan=3, sticky="we", pady=(1,0))
+        self._picker_v.grid(row=7, column=1, columnspan=5, sticky="we", pady=(1,0))
         # --- Smooth-drag: mark dragging on press, clear on release ---
         def _start_drag(_e=None):
             self._is_dragging = True
@@ -5858,21 +6612,21 @@ class PaletteTool:
         # H entry
         self._hsv_h_str = tk.StringVar(value="0")
         eH = tk.Entry(panel, textvariable=self._hsv_h_str, width=5)
-        eH.grid(row=5, column=4, sticky="w", padx=(6,0))
+        eH.grid(row=5, column=6, sticky="w", padx=(6,0))
         # S entry
         self._hsv_s_str = tk.StringVar(value="0")
         eS = tk.Entry(panel, textvariable=self._hsv_s_str, width=5)
-        eS.grid(row=6, column=4, sticky="w", padx=(6,0))
+        eS.grid(row=6, column=6, sticky="w", padx=(6,0))
         # V entry
         self._hsv_v_str = tk.StringVar(value="0")
         eV = tk.Entry(panel, textvariable=self._hsv_v_str, width=5)
-        eV.grid(row=7, column=4, sticky="w", padx=(6,0))
+        eV.grid(row=7, column=6, sticky="w", padx=(6,0))
 
         # --- Saved Colors panel (simple MS Paint style) ---
         if not hasattr(self, "_saved_colors"):
             self._saved_colors = [(0,0,0)] * 20
         sc_frame = tk.LabelFrame(panel, text="Saved Colors")
-        sc_frame.grid(row=9, column=0, columnspan=4, sticky="we", padx=0, pady=(2,0))
+        sc_frame.grid(row=9, column=0, columnspan=7, sticky="we", padx=0, pady=(2,0))
         sc_top = tk.Frame(sc_frame); sc_top.pack(fill="x", padx=2, pady=2)
         
         # Mouse button toggle (right side)
@@ -5886,13 +6640,13 @@ class PaletteTool:
             else:
                 help_label.config(text="Left click to save color\nRight click to apply color")
                 
-        mouse_btn = tk.Button(sc_top, text="L", font=("Arial", 10, "bold"), width=2, 
-                            relief="raised", bg="#d9d9d9", activebackground="#d9d9d9",
+        mouse_btn = tk.Button(sc_top, text="R", font=("Arial", 10, "bold"), width=2, 
+                            relief="sunken", bg="#d9d9d9", activebackground="#d9d9d9",
                             command=toggle_click_mode)
         mouse_btn.pack(side="right", padx=(4, 0))
         
         # Help text label that updates dynamically
-        help_label = tk.Label(sc_frame, text="Left click to save color\nRight click to apply color",
+        help_label = tk.Label(sc_frame, text="Left click to apply color\nRight click to save color",
                             anchor="w", justify="left", fg="gray40")
         help_label.pack(fill="x", padx=6)
         
@@ -5910,6 +6664,10 @@ class PaletteTool:
                 title="Save Colors",
                 initialdir=default_dir
             )
+            
+            # Bring live editor to front after file dialog
+            self._bring_live_editor_to_front()
+            
             if not p: return
             try:
                 # Create directory if it doesn't exist when actually saving
@@ -5921,6 +6679,10 @@ class PaletteTool:
             from tkinter import filedialog
             import json
             p = filedialog.askopenfilename(filetypes=[("JSON","*.json")], title="Load Colors")
+            
+            # Bring live editor to front after file dialog
+            self._bring_live_editor_to_front()
+            
             if not p: return
             try:
                 with open(p, "r", encoding="utf-8") as f:
@@ -6020,7 +6782,7 @@ class PaletteTool:
 
         # Close button directly under saved colors
         close_frame = tk.Frame(panel)
-        close_frame.grid(row=10, column=0, columnspan=4, sticky="we", pady=(10,0))
+        close_frame.grid(row=10, column=0, columnspan=7, sticky="we", pady=(10,0))
         tk.Button(close_frame, text="Close", command=on_window_close, width=12).pack()
 
         def _clamp_int(val, lo, hi, default=0):
@@ -6063,6 +6825,9 @@ class PaletteTool:
         # Center the live editor window after content is created
         self._live_editor_window.update_idletasks()
         self._center_window_on_parent(self._live_editor_window, self.master)
+        
+        # Update icon editor button state based on current palette type
+        self._update_icon_editor_button_state()
 
     def _create_advanced_palette_grid(self, grid, ly):
         """Create the traditional 16x16 palette grid showing all 256 colors"""
@@ -6149,7 +6914,12 @@ class PaletteTool:
         
         # Create frame inside canvas for the color squares
         squares_frame = tk.Frame(palette_canvas)
-        palette_canvas.create_window((0, 0), window=squares_frame, anchor="nw")
+        canvas_window = palette_canvas.create_window((0, 0), window=squares_frame, anchor="nw")
+        
+        # Make the frame expand to fill canvas width
+        def _on_canvas_configure(event):
+            palette_canvas.itemconfig(canvas_window, width=event.width)
+        palette_canvas.bind("<Configure>", _on_canvas_configure)
         
         # Fixed layout: 8 boxes per row
         cols = 8
@@ -6284,7 +7054,8 @@ class PaletteTool:
         
         # Store reference to current preview image
         self._simple_current_image = None
-        self._simple_current_frame = 0
+        # Initialize to the current frame from the main UI
+        self._simple_current_frame = getattr(self, 'current_image_index', 0)
         
         # Update the preview
         self._update_simple_preview()
@@ -6415,7 +7186,7 @@ class PaletteTool:
             return editable_indices
             
         except Exception as e:
-            print(f"Error getting editable color indices: {e}")
+            print(f"CONSOLE ERROR MSG: Error getting editable color indices: {e}")
             return []
 
     def _simple_prev_frame(self):
@@ -6479,7 +7250,7 @@ class PaletteTool:
             
             # Fallback to reasonable defaults if canvas not yet configured
             if canvas_width <= 1:
-                canvas_width = 380
+                canvas_width = 500
             if canvas_height <= 1:
                 canvas_height = 200
             
@@ -6562,7 +7333,7 @@ class PaletteTool:
                     self._update_selection_ui()
                     
         except Exception as e:
-            print(f"Error handling simple preview click: {e}")
+            print(f"CONSOLE ERROR MSG: Error handling simple preview click: {e}")
 
     def _update_simple_preview(self):
         """Update the simple mode preview image"""
@@ -6655,7 +7426,7 @@ class PaletteTool:
                     self._simple_frame_label.config(text=f"Frame {self._simple_current_frame + 1} / {total_frames}")
                 
         except Exception as e:
-            print(f"Error updating simple preview: {e}")
+            print(f"CONSOLE ERROR MSG: Error updating simple preview: {e}")
             self._simple_preview_canvas.delete("all")
 
     def _apply_palettes_to_image_path(self, image_path):
@@ -6695,7 +7466,7 @@ class PaletteTool:
             return rgb_img
             
         except Exception as e:
-            print(f"Error applying palettes to image: {e}")
+            print(f"CONSOLE ERROR MSG: Error applying palettes to image: {e}")
             return None
     
     def _toggle_colorpicker(self):
@@ -6836,7 +7607,7 @@ class PaletteTool:
                         self._apply_colorpicked_color_simple(picked_color)
                         
         except Exception as e:
-            print(f"Error picking color from simple preview: {e}")
+            print(f"CONSOLE ERROR MSG: Error picking color from simple preview: {e}")
     
     def _apply_colorpicked_color_simple(self, picked_color):
         """Apply a picked color to the selected palette indices in simple mode."""
@@ -7143,6 +7914,40 @@ class PaletteTool:
         if hasattr(self, "_sel_count_lbl"):
             self._sel_count_lbl.config(text=f"({len(self._selected_indices)} selected)")
 
+    def _live_select_all(self):
+        """Select all editable color swatches in the current palette."""
+        if hasattr(self, '_live_swatches'):
+            # Prevent HSV slider callbacks from applying changes during selection
+            self._updating_live_selection = True
+            try:
+                # Enable multi-select mode to allow relative HSV adjustments
+                self._multi_select.set(True)
+                
+                # Select based on UI mode
+                if self.live_pal_ui_mode == "Simple":
+                    # Simple mode: select all editable color indices (display indices)
+                    editable_indices = self._get_editable_color_indices()
+                    # In simple mode, _live_swatches contains only editable colors
+                    # so we select all available swatches
+                    self._selected_indices = set(range(len(self._live_swatches)))
+                else:
+                    # Advanced mode: select only editable colors from all 256
+                    editable_indices = self._get_editable_color_indices()
+                    # In advanced mode, _live_swatches contains all 256 colors
+                    # so we select only the editable indices
+                    self._selected_indices = set(editable_indices)
+                
+                if self._selected_indices:
+                    self._last_clicked_index = min(self._selected_indices)
+                    # Update sliders to show first selected color
+                    self._live_select_index(self._last_clicked_index)
+                self._update_selection_ui()
+                # Force pending events to process before clearing flag
+                if hasattr(self, '_live_editor_window') and self._live_editor_window:
+                    self._live_editor_window.update_idletasks()
+            finally:
+                self._updating_live_selection = False
+    
     def _live_clear_selection(self):
         self._selected_indices.clear()
         self._last_clicked_index = None
@@ -7213,20 +8018,20 @@ class PaletteTool:
                             canvas.delete("all")
                             canvas.create_rectangle(1, 1, 39, 39, fill=hex_color, outline="black", width=1)
                         except Exception as e:
-                            print(f"Error updating palette swatch {display_idx}: {e}")
+                            print(f"CONSOLE ERROR MSG: Error updating palette swatch {display_idx}: {e}")
         
         # Try forcing a palette refresh
         try:
             self._live_refresh_swatches()
         except Exception as e:
-            print(f"Error refreshing palette swatches: {e}")
+            print(f"CONSOLE ERROR MSG: Error refreshing palette swatches: {e}")
         
         # Reapply selection highlighting after color changes
         if hasattr(self, "_update_selection_ui"):
             try:
                 self._update_selection_ui()
             except Exception as e:
-                print(f"Error updating selection UI: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating selection UI: {e}")
         
         # Update color picker
         focus = self._live_selected_index
@@ -7237,20 +8042,20 @@ class PaletteTool:
                 self._picker_hex.delete(0, "end")
                 self._picker_hex.insert(0, f"#{fr:02x}{fg:02x}{fb:02x}")
             except Exception as e:
-                print(f"Error updating color picker: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating color picker: {e}")
         
         # Update main image display (debounced to prevent flickering)
         try:
             self._debounced_display_update()
         except Exception as e:
-            print(f"Error updating main image display: {e}")
+            print(f"CONSOLE ERROR MSG: Error updating main image display: {e}")
         
         # Update simple mode preview if in simple mode
         if self.live_pal_ui_mode == "Simple" and hasattr(self, '_update_simple_preview'):
             try:
                 self._update_simple_preview()
             except Exception as e:
-                print(f"Error updating simple mode preview: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating simple mode preview: {e}")
     
     def _advanced_mode_reset(self, current_layer):
         """Reset colors specifically for Advanced mode"""
@@ -7264,14 +8069,14 @@ class PaletteTool:
                 canvas.delete("all")
                 canvas.create_rectangle(1, 1, 19, 19, fill=hex_color, outline="black", width=1)
             except Exception as e:
-                print(f"Error updating advanced mode swatch {i}: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating advanced mode swatch {i}: {e}")
         
         # Keep selection visuals
         if hasattr(self, "_update_selection_ui"):
             try:
                 self._update_selection_ui()
             except Exception as e:
-                print(f"Error updating selection UI: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating selection UI: {e}")
         
         # Update color picker
         focus = self._live_selected_index
@@ -7282,13 +8087,13 @@ class PaletteTool:
                 self._picker_hex.delete(0, "end")
                 self._picker_hex.insert(0, f"#{fr:02x}{fg:02x}{fb:02x}")
             except Exception as e:
-                print(f"Error updating color picker: {e}")
+                print(f"CONSOLE ERROR MSG: Error updating color picker: {e}")
         
         # Update main image display (debounced to prevent flickering)
         try:
             self._debounced_display_update()
         except Exception as e:
-            print(f"Error updating main image display: {e}")
+            print(f"CONSOLE ERROR MSG: Error updating main image display: {e}")
 
     def _open_icon_editor(self):
         """Open the icon palette editor for the current character and fashion type"""
@@ -7329,8 +8134,19 @@ class PaletteTool:
         image_char_id = char_id  # Keep the original ID for icon folder lookup
         
         try:
-            from icon_handler import IconPaletteEditor
-            editor = IconPaletteEditor(self.master, image_char_id)
+            from icon_handler import IconPaletteEditor, IconHandler
+            icon_handler = IconHandler()
+            icon_handler.main_window = self
+            editor = IconPaletteEditor(
+                char_id=image_char_id,
+                fashion_type="fashion_1",  # Default fashion type
+                custom_palette=[(0, 0, 0)] * 256,  # Default palette
+                palette_path="temp_main_ui.pal",
+                palette_layers=self.palette_layers,
+                live_editor_window=None,
+                is_quicksave_mode=False,
+                icon_handler=icon_handler
+            )
         except Exception as e:
             messagebox.showerror("Error", f"Could not open icon editor: {str(e)}")
 
@@ -7476,8 +8292,9 @@ class PaletteTool:
             use_scaleV = bv > EPS
             scaleS = (S_new/100.0) / (bs/100.0) if use_scaleS else None
             scaleV = (V_new/100.0) / (bv/100.0) if use_scaleV else None
-            dS = (S_new - bs) if not use_scaleS else 0
-            dV = (V_new - bv) if not use_scaleV else 0
+            # Clamp additive deltas to prevent extreme changes when base color is near black/gray
+            dS = max(-50, min(50, S_new - bs)) if not use_scaleS else 0
+            dV = max(-50, min(50, V_new - bv)) if not use_scaleV else 0
         else:
             dH = 0; scaleS = 1.0; scaleV = 1.0; dS = 0; dV = 0
 
@@ -7496,7 +8313,11 @@ class PaletteTool:
                     s = max(0, min(100, int(round(s * scaleS))))
                 # Value per-swatch: additive if target near zero or scale unavailable; else multiplicative
                 if v <= EPS_TGT or scaleV is None:
-                    v = max(0, min(100, int(round(v + dV))))
+                    # Additional safety: don't apply extreme negative dV to colors that aren't already dark
+                    if dV < -20 and v > 20:  # If trying to apply large negative change to bright color
+                        v = max(20, min(100, int(round(v + max(dV, -20)))))  # Limit the darkening
+                    else:
+                        v = max(0, min(100, int(round(v + dV))))
                 else:
                     v = max(0, min(100, int(round(v * scaleV))))
             else:
@@ -7683,10 +8504,17 @@ class PaletteTool:
                     pass
                 # Restore UI mode after warning dialog
                 self.live_pal_ui_mode = current_ui_mode
+                # Bring live editor window to front after user clicked "No"
+                if hasattr(self, '_live_editor_window') and self._live_editor_window and self._live_editor_window.winfo_exists():
+                    self._live_editor_window.lift()
+                    self._live_editor_window.focus_force()
                 return
             # Restore UI mode after warning dialog
             self.live_pal_ui_mode = current_ui_mode
             self._live_prev_target_name = new_name
+            
+            # Update icon editor button state after switching palette types
+            self._update_icon_editor_button_state()
         except Exception:
             pass
         # Save current palette's temporary changes to cache before switching
@@ -7769,7 +8597,7 @@ class PaletteTool:
                 # Update the icon editor's palette layers
                 IconHandler._icon_editor_instance.update_palette_layers(self.palette_layers)
         except Exception as e:
-            print(f"Error notifying icon editor of palette change: {e}")
+            print(f"CONSOLE ERROR MSG: Error notifying icon editor of palette change: {e}")
 
     def _live_current_layer(self):
         if not hasattr(self, "_live_layers") or not self._live_layers:
@@ -7922,11 +8750,11 @@ class PaletteTool:
                                command=lambda: self._update_gradient_settings('saturation', sat_var.get()))
         sat_cb.pack(side="left", padx=5)
         
-        # Lightness checkbox
-        light_var = tk.BooleanVar(value=self._gradient_adjust_lightness)
-        light_cb = tk.Checkbutton(checkbox_frame, text="Lightness", variable=light_var,
-                               command=lambda: self._update_gradient_settings('lightness', light_var.get()))
-        light_cb.pack(side="left", padx=5)
+        # Value checkbox
+        value_var = tk.BooleanVar(value=self._gradient_adjust_value)
+        value_cb = tk.Checkbutton(checkbox_frame, text="Value", variable=value_var,
+                               command=lambda: self._update_gradient_settings('value', value_var.get()))
+        value_cb.pack(side="left", padx=5)
         
         # Define expanded gradient colors with light/dark variants and additional colors
         gradient_colors = [
@@ -8047,27 +8875,14 @@ class PaletteTool:
             
             tk.Label(row, text=label, font=("Arial", 8)).pack(side="left", padx=(0, 5))
             
-            # Create a frame to hold all color entries for this row
-            colors_frame = tk.Frame(row)
-            colors_frame.pack(side="left", fill="x", expand=True)
-            
             for color_data in colors:
                 if color_data:  # Check if color_data exists
                     name, hex_color = color_data[0], color_data[1]
                     target_hue = color_data[2] if len(color_data) > 2 else None
                     variant = color_data[3] if len(color_data) > 3 else None
-                    
-                    # Create a frame for each color entry
-                    color_entry_frame = tk.Frame(colors_frame)
-                    color_entry_frame.pack(side="left", fill="x", expand=True)
-                    
-                    # Add name label aligned left
-                    tk.Label(color_entry_frame, text=name, font=("Arial", 8), anchor="w").pack(side="left", padx=(0, 5))
-                    
-                    # Add color button aligned right
-                    btn = tk.Button(color_entry_frame, text="  ", bg=hex_color, width=3, height=1,
+                    btn = tk.Button(row, text="  ", bg=hex_color, width=3, height=1,
                                   command=lambda h=target_hue, n=name, v=variant: self._apply_gradient_hue(h, n, v))
-                    btn.pack(side="right", padx=1)
+                    btn.pack(side="left", padx=1)
         
         # Buttons frame
         buttons_frame = tk.Frame(main_frame)
@@ -8086,9 +8901,21 @@ class PaletteTool:
         x = self._live_editor_window.winfo_x() + (self._live_editor_window.winfo_width() - width) // 2
         y = self._live_editor_window.winfo_y() + (self._live_editor_window.winfo_height() - height) // 2
         gradient_window.geometry(f"+{x}+{y}")
+        
+        # Add arrow key bindings to control simple preview frames when gradient menu is open
+        def _on_gradient_key(event):
+            if self.live_pal_ui_mode == "Simple":
+                if event.keysym == "Left":
+                    self._simple_prev_frame()
+                elif event.keysym == "Right":
+                    self._simple_next_frame()
+        
+        gradient_window.bind("<Left>", _on_gradient_key)
+        gradient_window.bind("<Right>", _on_gradient_key)
+        gradient_window.focus_set()  # Make sure gradient window can receive key events
 
     def _apply_gradient_hue(self, target_hue, color_name, variant=None):
-        """Apply hue adjustment to all colors in the current palette."""
+        """Apply hue adjustment to colors in the current palette."""
         import colorsys
 
         # --- FIX: ensure self.char_num exists ---
@@ -8103,13 +8930,18 @@ class PaletteTool:
         if ly is None:
             return
 
+        # Determine which indices to modify based on multiselect state
+        if self._multi_select.get() and self._selected_indices:
+            indices_to_modify = self._selected_indices
+        else:
+            indices_to_modify = range(len(ly.colors))
             
         # Special handling for neutral colors and variants
         if target_hue is None or variant in ["grey", "light_grey", "dark_grey", "black", "white"]:
             if variant == "light_grey" or color_name == "Light Grey":
                 # Convert to light greyscale
-                for i in range(len(ly.colors)):
-                    if isinstance(ly.colors[i], tuple):
+                for i in indices_to_modify:
+                    if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                         r, g, b = ly.colors[i]
                         grey = int(0.299 * r + 0.587 * g + 0.114 * b)
                         # Make it lighter
@@ -8117,8 +8949,8 @@ class PaletteTool:
                         ly.colors[i] = (light_grey, light_grey, light_grey)
             elif variant == "dark_grey" or color_name == "Dark Grey":
                 # Convert to dark greyscale
-                for i in range(len(ly.colors)):
-                    if isinstance(ly.colors[i], tuple):
+                for i in indices_to_modify:
+                    if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                         r, g, b = ly.colors[i]
                         grey = int(0.299 * r + 0.587 * g + 0.114 * b)
                         # Make it darker
@@ -8126,15 +8958,15 @@ class PaletteTool:
                         ly.colors[i] = (dark_grey, dark_grey, dark_grey)
             elif variant == "grey" or color_name == "Grey":
                 # Convert all colors to greyscale
-                for i in range(len(ly.colors)):
-                    if isinstance(ly.colors[i], tuple):
+                for i in indices_to_modify:
+                    if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                         r, g, b = ly.colors[i]
                         grey = int(0.299 * r + 0.587 * g + 0.114 * b)
                         ly.colors[i] = (grey, grey, grey)
             elif variant == "black" or color_name == "Black":
                 # Make all colors darker (reduce value significantly)
-                for i in range(len(ly.colors)):
-                    if isinstance(ly.colors[i], tuple):
+                for i in indices_to_modify:
+                    if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                         r, g, b = ly.colors[i]
                         h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
                         v = v * 0.2  # Reduce brightness to 20%
@@ -8142,8 +8974,8 @@ class PaletteTool:
                         ly.colors[i] = (int(rr*255), int(gg*255), int(bb*255))
             elif variant == "white" or color_name == "White":
                 # Make all colors lighter (increase value significantly)
-                for i in range(len(ly.colors)):
-                    if isinstance(ly.colors[i], tuple):
+                for i in indices_to_modify:
+                    if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                         r, g, b = ly.colors[i]
                         h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
                         v = min(1.0, v + (1.0 - v) * 0.8)  # Increase brightness towards white
@@ -8151,8 +8983,8 @@ class PaletteTool:
                         ly.colors[i] = (int(rr*255), int(gg*255), int(bb*255))
         else:
             # Apply hue adjustment with optional lightness/darkness variants
-            for i in range(len(ly.colors)):
-                if isinstance(ly.colors[i], tuple):
+            for i in indices_to_modify:
+                if i < len(ly.colors) and isinstance(ly.colors[i], tuple):
                     r, g, b = ly.colors[i]
                     h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
                     
@@ -8178,11 +9010,11 @@ class PaletteTool:
                     if self._gradient_adjust_saturation:
                         s = orig_s  # Use original saturation as target
                         
-                    # Adjust value/lightness if enabled
-                    if self._gradient_adjust_lightness:
+                    # Adjust value if enabled
+                    if self._gradient_adjust_value:
                         v = orig_v  # Use original value as target
                     
-                    # Apply lightness/darkness variants
+                    # Apply value variants
                     if variant == "pastel":
                         # Make colors very light and soft by increasing value and significantly reducing saturation
                         v = min(1.0, v + (1.0 - v) * 0.8)  # Increase brightness significantly
@@ -8265,15 +9097,15 @@ class PaletteTool:
             self._gradient_adjust_hue = value
         elif setting == 'saturation':
             self._gradient_adjust_saturation = value
-        elif setting == 'lightness':
-            self._gradient_adjust_lightness = value
+        elif setting == 'value':
+            self._gradient_adjust_value = value
     
     def _reset_gradient_colors(self):
         """Reset colors to original palette colors before gradient changes and reset HSL settings."""
         # Reset HSL settings to defaults
         self._gradient_adjust_hue = True
         self._gradient_adjust_saturation = False
-        self._gradient_adjust_lightness = False
+        self._gradient_adjust_value = False
         ly = self._live_current_layer()
         if ly is None:
             return
@@ -8305,9 +9137,9 @@ class PaletteTool:
                     else:
                         print(f"Could not extract character info from layer name: {ly.name}")
                 else:
-                    print("Layer has no name attribute for vanilla palette lookup")
+                    print("CONSOLE ERROR MSG: Layer has no name attribute for vanilla palette lookup")
             except Exception as e:
-                print(f"Error resetting gradient colors: {e}")
+                print(f"CONSOLE ERROR MSG: Error resetting gradient colors: {e}")
         
         # Update the UI
         self._live_refresh_swatches()
@@ -8395,7 +9227,7 @@ class PaletteTool:
                 return None
                 
         except Exception as e:
-            print(f"Error loading original palette: {e}")
+            print(f"CONSOLE ERROR MSG: Error loading original palette: {e}")
             return None
     
     def _is_keyed_color(self, color, index):
@@ -8506,60 +9338,21 @@ class PaletteTool:
                         self.statistics.character_edits[key]['palette_saves'] += 1
                     self._save_statistics()
             
-            # After successful save, ask about icon
+            # After successful save, ask about icon (but skip for hair/3rd job)
             from tkinter import messagebox
-            icon_choice = self._ask_icon_save_choice()
-            if icon_choice == "quicksave":
-                # Extract character ID and item name from the layer
-                # Match both formats: chr025 and 025
-                char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
-                if char_match:
-                    num = char_match.group(1)
-                    char_id = f"chr{num}"  # Normalize to chr format
-                    
-                    # Get the fashion type from the layer
-                    fashion_type = getattr(ly, "palette_type", "")
-                    if fashion_type:
-                        # Read the newly saved palette
-                        try:
-                            with open(path, 'rb') as f:
-                                saved_pal_data = f.read()
-                            
-                            # Convert to RGB tuples
-                            saved_palette = []
-                            for i in range(0, len(saved_pal_data), 3):
-                                r = saved_pal_data[i]
-                                g = saved_pal_data[i+1]
-                                b = saved_pal_data[i+2]
-                                saved_palette.append((r, g, b))
-                            
-                            print(f"\nRead saved palette from: {path}")
-                            print(f"Found {len(saved_palette)} colors")
-                            
-                            # Actually save the icon using the IconHandler (QuickSave)
-                            from icon_handler import IconHandler
-                            icon_handler = IconHandler()
-                            success = icon_handler.save_as_icon(
-                                char_id=char_id,
-                                fashion_type=fashion_type,
-                                custom_palette=saved_palette,
-                                palette_path=path
-                            )
-                        except Exception as e:
-                            print(f"Error reading saved palette: {e}")
-                            success = False
-                    
-                    if success:
-                        messagebox.showinfo(
-                            "Icon Saved",
-                            f"Icon saved successfully to exports/icons/"
-                        )
-                    else:
-                        messagebox.showwarning(
-                            "Icon Save Failed",
-                            "Could not find matching icon files for this item."
-                        )
-            elif icon_choice == "openeditor":
+            
+            # Check if this is a hair or 3rd job palette - if so, skip the dialog entirely
+            if hasattr(ly, 'palette_type'):
+                palette_type = str(ly.palette_type).lower()
+                if palette_type in ("hair", "3rd_job_base"):
+                    # Skip the post-save dialog for hair and 3rd job palettes
+                    icon_choice = "no"  # Act as if user clicked "No I'm good"
+                else:
+                    icon_choice = self._ask_icon_save_choice(path, ly)
+            else:
+                icon_choice = self._ask_icon_save_choice(path, ly)
+            # Note: "quicksave" and "saveportrait" are handled within the dialog
+            if icon_choice == "openeditor":
                 # Extract character ID and item name from the layer
                 char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
                 if char_match:
@@ -8587,6 +9380,11 @@ class PaletteTool:
                             
                             # Open the icon palette editor
                             from icon_handler import IconPaletteEditor
+                            # Create icon handler and set main window reference
+                            from icon_handler import IconHandler
+                            icon_handler = IconHandler()
+                            icon_handler.main_window = self
+                            
                             editor = IconPaletteEditor(
                                 char_id=char_id,
                                 fashion_type=fashion_type,
@@ -8594,19 +9392,22 @@ class PaletteTool:
                                 palette_path=path,
                                 palette_layers=None,  # Don't pass palette layers to avoid refresh issues
                                 live_editor_window=self._live_editor_window,
-                                is_quicksave_mode=False  # Editor mode - allow user to name file
+                                is_quicksave_mode=False,  # Editor mode - allow user to name file
+                                icon_handler=icon_handler
                             )
                             # Bring the icon editor to the front after creation
                             editor._bring_to_front()
                         except Exception as e:
-                            print(f"Error reading saved palette: {e}")
+                            print(f"CONSOLE ERROR MSG: Error reading saved palette: {e}")
                             messagebox.showerror("Error", f"Failed to open icon editor: {e}")
             
             # Only bring the PAL editor window to the front if we didn't open the icon editor
             if icon_choice != "openeditor":
-                self._live_editor_window.lift()
+                self._bring_live_editor_to_front()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save: {e}")
+            # Bring live editor to front even on error
+            self._bring_live_editor_to_front()
     
     def _live_open_icon_editor(self):
         """Open the icon editor directly without saving a palette first."""
@@ -8646,13 +9447,13 @@ class PaletteTool:
                     if 0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255:
                         valid_colors.append((r, g, b))
                     else:
-                        print(f"Warning: Color values out of range at index {i}: {color}")
+                        print(f"CONSOLE ERROR MSG: Color values out of range at index {i}: {color}")
                         valid_colors.append((128, 128, 128))  # Default gray
                 except (ValueError, TypeError):
-                    print(f"Warning: Invalid color at index {i}: {color}")
+                    print(f"CONSOLE ERROR MSG: Invalid color at index {i}: {color}")
                     valid_colors.append((128, 128, 128))  # Default gray
             else:
-                print(f"Warning: Invalid color format at index {i}: {color}")
+                print(f"CONSOLE ERROR MSG: Invalid color format at index {i}: {color}")
                 valid_colors.append((128, 128, 128))  # Default gray
         
         if not valid_colors:
@@ -8665,6 +9466,11 @@ class PaletteTool:
         try:
             # Open the icon palette editor directly
             from icon_handler import IconPaletteEditor
+            # Create icon handler and set main window reference
+            from icon_handler import IconHandler
+            icon_handler = IconHandler()
+            icon_handler.main_window = self
+            
             editor = IconPaletteEditor(
                 char_id=char_id,
                 fashion_type=fashion_type,
@@ -8672,23 +9478,246 @@ class PaletteTool:
                 palette_path=temp_palette_path,
                 palette_layers=self.palette_layers,  # Pass palette layers to enable dropdown refresh
                 live_editor_window=self._live_editor_window,
-                is_quicksave_mode=False  # Editor mode - allow user to name file
+                is_quicksave_mode=False,  # Editor mode - allow user to name file
+                icon_handler=icon_handler
             )
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open icon editor: {e}")
     
+    def _update_icon_editor_button_state(self):
+        """Update the icon editor button state based on current palette types"""
+        if not hasattr(self, 'icon_editor_button'):
+            return
+            
+        # Check if live palette editor is open and editing non-impact types
+        if hasattr(self, '_live_editor_window') and self._live_editor_window and self._live_editor_window.winfo_exists():
+            # Check if current layer is hair or third job
+            try:
+                current_layer = self._live_current_layer()
+                if current_layer and hasattr(current_layer, 'palette_type'):
+                    palette_type = str(current_layer.palette_type).lower()
+                    if palette_type in ("hair", "3rd_job_base"):
+                        self.icon_editor_button.config(state="disabled", text="Icon Editor (N/A)")
+                        return
+            except Exception:
+                pass
+        
+        # Default state - enabled
+        self.icon_editor_button.config(state="normal", text="Icon Editor")
+
     def _open_icon_editor(self):
         """Open the icon editor from the main screen."""
         from icon_handler import IconHandler
         icon_handler = IconHandler()
         # Pass the live editor window if it exists
         live_editor = getattr(self, '_live_editor_window', None)
+        # Set the main window reference
+        icon_handler.main_window = self
         icon_handler.open_icon_editor(self.palette_layers, live_editor)
     
-    def _ask_icon_save_choice(self):
+    def _quick_export_icon(self):
+        """Quickly export icon without opening the editor."""
+        import re
+        from tkinter import messagebox
+        from icon_handler import IconHandler
+        
+        # Check if we have active layers
+        active_layers = [ly for ly in self.palette_layers if getattr(ly, "active", False)]
+        if not active_layers:
+            return  # Silently return - no prompt
+            
+        # Check if current layer is hair or third job - if so, silently return
+        current_layer = None
+        for layer in active_layers:
+            if hasattr(layer, 'palette_type'):
+                palette_type = str(layer.palette_type).lower()
+                if palette_type in ("hair", "3rd_job_base"):
+                    return  # Silently return - no prompt for hair/third job
+        
+        # Filter out hair and third job layers
+        base_fashion_layers = [ly for ly in active_layers if hasattr(ly, "palette_type") and 
+                             ly.palette_type.startswith("fashion_") and 
+                             not (ly.name and ("hair" in ly.name.lower() or "third" in ly.name.lower()))]
+                             
+        if not base_fashion_layers:
+            return  # Silently return - no prompt
+
+        # Prefer an active fashion layer if present
+        default_idx = 0
+        for i, ly in enumerate(active_layers):
+            if hasattr(ly, "palette_type") and ly.palette_type.startswith("fashion"):
+                default_idx = i
+                break
+
+        ly = active_layers[default_idx]
+        
+        # Extract character ID and item name from the layer
+        char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
+        if not char_match:
+            messagebox.showerror("Error", "Could not determine character ID from layer name")
+            return
+        
+        num = char_match.group(1)
+        char_id = f"chr{num}"  # Normalize to chr format
+        
+        # Get the fashion type from the layer
+        fashion_type = getattr(ly, "palette_type", "")
+        if not fashion_type:
+            messagebox.showerror("Error", "Could not determine fashion type from layer")
+            return
+        
+        # Get the current colors from the layer
+        try:
+            current_colors = []
+            for i, color in enumerate(ly.colors):
+                if isinstance(color, (list, tuple)) and len(color) >= 3:
+                    r, g, b = color[:3]
+                    if 0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255:
+                        current_colors.append((int(r), int(g), int(b)))
+                    else:
+                        print(f"CONSOLE ERROR MSG: Color values out of range at index {i}: {color}")
+                        current_colors.append((128, 128, 128))  # Default gray
+                else:
+                    print(f"CONSOLE ERROR MSG: Invalid color format at index {i}: {color}")
+                    current_colors.append((128, 128, 128))  # Default gray
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to get colors from layer: {e}")
+            return
+        
+        if not current_colors:
+            messagebox.showerror("Error", "No valid colors found in the selected layer")
+            return
+        
+        # Create icon handler and export
+        icon_handler = IconHandler()
+        icon_handler.main_window = self
+        
+        # Create a temporary palette path for naming
+        temp_palette_path = f"temp_{ly.name}.pal"
+        
+        try:
+            success = icon_handler.save_as_icon(
+                char_id,
+                fashion_type,
+                current_colors,
+                temp_palette_path
+            )
+            if success:
+                messagebox.showinfo("Success", "Icon exported successfully!")
+            else:
+                messagebox.showerror("Error", "Failed to export icon.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export icon: {e}")
+    
+    def _quick_export_icon_from_dialog(self, path, ly, dialog):
+        """Quick export icon from the Post-Pal Save Menu dialog."""
+        import re
+        from tkinter import messagebox
+        from icon_handler import IconHandler
+        
+        # Extract character ID and item name from the layer
+        char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
+        if not char_match:
+            messagebox.showerror("Error", "Could not determine character ID from layer name")
+            return
+        
+        num = char_match.group(1)
+        char_id = f"chr{num}"  # Normalize to chr format
+        
+        # Get the fashion type from the layer
+        fashion_type = getattr(ly, "palette_type", "")
+        if not fashion_type:
+            messagebox.showerror("Error", "Could not determine fashion type from layer")
+            return
+        
+        try:
+            # Read the newly saved palette
+            with open(path, 'rb') as f:
+                saved_pal_data = f.read()
+            
+            # Convert to RGB tuples
+            saved_palette = []
+            for i in range(0, len(saved_pal_data), 3):
+                r = saved_pal_data[i]
+                g = saved_pal_data[i+1]
+                b = saved_pal_data[i+2]
+                saved_palette.append((r, g, b))
+            
+            # Create icon handler and export
+            icon_handler = IconHandler()
+            icon_handler.main_window = self
+            
+            success = icon_handler.save_as_icon(
+                char_id,
+                fashion_type,
+                saved_palette,
+                path
+            )
+            if success:
+                messagebox.showinfo("Success", "Icon exported successfully!")
+                # Close the dialog after successful export
+                dialog.destroy()
+            else:
+                messagebox.showerror("Error", "Failed to export icon.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export icon: {e}")
+    
+    def _quick_export_icon_from_dialog_no_close(self, path, ly):
+        """Quick export icon from the Post-Pal Save Menu dialog without closing it."""
+        import re
+        from tkinter import messagebox
+        from icon_handler import IconHandler
+        
+        # Extract character ID and item name from the layer
+        char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
+        if not char_match:
+            messagebox.showerror("Error", "Could not determine character ID from layer name")
+            return
+        
+        num = char_match.group(1)
+        char_id = f"chr{num}"  # Normalize to chr format
+        
+        # Get the fashion type from the layer
+        fashion_type = getattr(ly, "palette_type", "")
+        if not fashion_type:
+            messagebox.showerror("Error", "Could not determine fashion type from layer")
+            return
+        
+        try:
+            # Read the newly saved palette
+            with open(path, 'rb') as f:
+                saved_pal_data = f.read()
+            
+            # Convert to RGB tuples
+            saved_palette = []
+            for i in range(0, len(saved_pal_data), 3):
+                r = saved_pal_data[i]
+                g = saved_pal_data[i+1]
+                b = saved_pal_data[i+2]
+                saved_palette.append((r, g, b))
+            
+            # Create icon handler and export
+            icon_handler = IconHandler()
+            icon_handler.main_window = self
+            
+            success = icon_handler.save_as_icon(
+                char_id,
+                fashion_type,
+                saved_palette,
+                path
+            )
+            if success:
+                messagebox.showinfo("Success", "Icon exported successfully!")
+                # Don't close the dialog - keep it open
+            else:
+                messagebox.showerror("Error", "Failed to export icon.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export icon: {e}")
+    
+    def _ask_icon_save_choice(self, path, ly):
         """Show a simple dialog asking how to handle icon saving."""
         dialog = tk.Toplevel(self._live_editor_window)
-        dialog.title("Save Icon")
+        dialog.title("Post-Pal QuickSave Menu")
         dialog.resizable(False, False)
         dialog.transient(self._live_editor_window)
         dialog.grab_set()
@@ -8696,27 +9725,173 @@ class PaletteTool:
         # Make it modal
         result = {"choice": None}
         
+        # Helper functions that perform actions without closing dialog
+        def save_icon():
+            """Save icon - quick export if checkbox is checked, otherwise prompt for filename"""
+            from tkinter import messagebox, filedialog
+            
+            # Check if quick export is enabled
+            if quick_export_var.get():
+                # Quick export mode - directly export the icon without closing dialog
+                self._quick_export_icon_from_dialog_no_close(path, ly)
+            else:
+                # Normal mode - prompt user for filename and save icon
+                # Extract character ID and item name from the layer
+                char_match = re.search(r'(?:chr)?(\d{3})', ly.name)
+                if char_match:
+                    num = char_match.group(1)
+                    char_id = f"chr{num}"  # Normalize to chr format
+                    
+                    # Get the fashion type from the layer
+                    fashion_type = getattr(ly, "palette_type", "")
+                    if fashion_type:
+                        # Read the newly saved palette
+                        try:
+                            with open(path, 'rb') as f:
+                                saved_pal_data = f.read()
+                            
+                            # Convert to RGB tuples
+                            saved_palette = []
+                            for i in range(0, len(saved_pal_data), 3):
+                                r = saved_pal_data[i]
+                                g = saved_pal_data[i+1]
+                                b = saved_pal_data[i+2]
+                                saved_palette.append((r, g, b))
+                            
+                            print(f"\nRead saved palette from: {path}")
+                            print(f"Found {len(saved_palette)} colors")
+                            
+                            # Prompt user for filename
+                            default_name = f"{char_id}_{fashion_type}.bmp"
+                            file_path = filedialog.asksaveasfilename(
+                                title="Save Icon As",
+                                defaultextension=".bmp",
+                                filetypes=[("BMP files", "*.bmp"), ("All files", "*.*")],
+                                initialname=default_name,
+                                parent=dialog
+                            )
+                            
+                            if file_path:
+                                # Ensure the file has .bmp extension
+                                if not file_path.lower().endswith('.bmp'):
+                                    file_path += '.bmp'
+                                
+                                # Create icon handler and save with user-specified filename
+                                from icon_handler import IconHandler
+                                icon_handler = IconHandler()
+                                icon_handler.main_window = self
+                                
+                                # Find the base BMP path for the character/fashion
+                                base_bmp_name = icon_handler._find_base_bmp_name(char_id, fashion_type)
+                                if base_bmp_name:
+                                    # Construct the BMP path
+                                    bmp_path = os.path.join(icon_handler.root_dir, "src", "rawbmps", char_id, f"{base_bmp_name}.bmp")
+                                    
+                                    # Get keying color
+                                    keying_color = icon_handler._determine_keying_color(saved_palette)
+                                    
+                                    success = icon_handler.save_as_icon_with_colors(
+                                        char_id,
+                                        fashion_type,
+                                        saved_palette,
+                                        keying_color,
+                                        bmp_path,
+                                        file_path
+                                    )
+                                    if success:
+                                        messagebox.showinfo("Success", f"Icon saved as: {os.path.basename(file_path)}")
+                                    else:
+                                        messagebox.showerror("Error", "Failed to save icon.")
+                                else:
+                                    messagebox.showerror("Error", "Could not find base BMP for this character/fashion.")
+                        except Exception as e:
+                            print(f"CONSOLE ERROR MSG: Error saving icon: {e}")
+                            messagebox.showerror("Error", f"Failed to save icon: {e}")
+            
+            # Bring dialog back to front
+            dialog.lift()
+            dialog.focus_force()
+        
+        def save_portrait():
+            """Save portrait - quick export if checkbox is checked, otherwise prompt for filename"""
+            from tkinter import messagebox
+            try:
+                frame = self.get_current_displayed_frame()
+                if frame is not None:
+                    # Both quick export and normal mode use the same method
+                    # The export_background_bmp method already handles filename prompting
+                    self.export_background_bmp(frame, force_portrait=True)
+                else:
+                    messagebox.showerror("Error", "No frame available for portrait export.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to export portrait: {e}")
+            
+            # Bring dialog back to front
+            dialog.lift()
+            dialog.focus_force()
+        
         # Simple layout
-        tk.Label(dialog, text="Do you want to save an icon?", 
+        tk.Label(dialog, text="Do you want to quicksave export or edit the icon?", 
                 font=("Arial", 10)).pack(pady=10)
         
-        # Three buttons
+        # Quick Export checkbox
+        checkbox_frame = tk.Frame(dialog)
+        checkbox_frame.pack(pady=(0, 10))
+        
+        # Get initial value from settings
+        initial_quick_export = getattr(self, 'use_quick_export', False)
+        quick_export_var = tk.BooleanVar(value=initial_quick_export)
+        
+        # Three main action buttons
         button_frame = tk.Frame(dialog)
         button_frame.pack(pady=10)
         
-        tk.Button(button_frame, text="QuickSave", 
-                 command=lambda: self._close_dialog(dialog, result, "quicksave"),
-                 width=10).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Save Icon", 
+                 command=save_icon,
+                 width=13).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(button_frame, text="Open Editor", 
-                 command=lambda: self._close_dialog(dialog, result, "openeditor"),
-                 width=10).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Save Portrait", 
+                 command=save_portrait,
+                 width=13).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(button_frame, text="No", 
+        # Live Edit Icon button (will be shown/hidden based on checkbox)
+        live_edit_button = tk.Button(button_frame, text="Live Edit Icon", 
+                                   command=lambda: self._close_dialog(dialog, result, "openeditor"),
+                                   width=13)
+        live_edit_button.pack(side=tk.LEFT, padx=5)
+        
+        def toggle_quick_export():
+            """Toggle quick export mode and show/hide Live Edit Icon button"""
+            self.use_quick_export = quick_export_var.get()
+            # Save the setting
+            self._save_settings()
+            
+            # Show/hide the Live Edit Icon button based on checkbox state
+            if quick_export_var.get():
+                live_edit_button.pack_forget()  # Hide the button
+            else:
+                live_edit_button.pack(side=tk.LEFT, padx=5)  # Show the button
+        
+        quick_export_checkbox = tk.Checkbutton(checkbox_frame, text="Quick Export (Skip Icon Editor)", 
+                                             variable=quick_export_var,
+                                             command=toggle_quick_export)
+        quick_export_checkbox.pack()
+        
+        # Set initial button state based on checkbox
+        if initial_quick_export:
+            live_edit_button.pack_forget()
+        
+        # "No thanks" button at the bottom
+        no_button_frame = tk.Frame(dialog)
+        no_button_frame.pack(pady=(0, 10))
+        
+        tk.Button(no_button_frame, text="No I'm good c:", 
                  command=lambda: self._close_dialog(dialog, result, "no"),
-                 width=10).pack(side=tk.LEFT, padx=5)
+                 width=13).pack()
         
-        # Center the dialog after content is created
+        # Bring dialog to front and center it
+        dialog.lift()
+        dialog.focus_force()
         dialog.update_idletasks()
         self._center_window_on_parent(dialog, self._live_editor_window)
         
@@ -8767,12 +9942,8 @@ class PaletteTool:
         
         # Reload custom palettes from new directory structure
         custom_pals_paths = self.get_custom_pals_paths()
-        print("\n=== Refreshing Custom Palettes ===")
-        print(f"Looking in paths: {custom_pals_paths}")
         for custom_pals_path in custom_pals_paths:
-            print(f"\nChecking directory: {os.path.abspath(custom_pals_path)}")
             if not os.path.exists(custom_pals_path):
-                print(f"Directory does not exist!")
                 continue
             for file in os.listdir(custom_pals_path):
                 if file.lower().endswith('.pal'):
@@ -8802,22 +9973,9 @@ class PaletteTool:
                             
                             if valid_file:
                                 self.fashion_palettes[char_id_for_pal].append(palette_path)
-                                print(f"\nLoaded custom fashion palette:")
-                                print(f"  File: {file}")
-                                print(f"  Path: {palette_path}")
-                                print(f"  Character: {char_id_for_pal}")
-                                print(f"  Current palettes: {[os.path.basename(p) for p in self.fashion_palettes[char_id_for_pal]]}")
-                            else:
-                                print(f"\nInvalid custom fashion palette:")
-                                print(f"  File: {file}")
-                                print(f"  Path: {palette_path}")
-                                print(f"  Reason: Validation failed - invalid color values")
                             
                         except Exception as e:
-                            print(f"\nError loading custom fashion palette:")
-                            print(f"  File: {file}")
-                            print(f"  Path: {palette_path}")
-                            print(f"  Error: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load custom fashion palette {file}: {e}")
                             continue
                     
                     # Check for hair palettes (chr###_#.pal)
@@ -8846,19 +10004,35 @@ class PaletteTool:
                             
                             if valid_file:
                                 self.hair_palettes[char_id_for_pal].append(palette_path)
-                                print(f"Loaded custom hair palette: {file} at {palette_path}")
-                                print(f"Current hair palettes for {char_id_for_pal}: {self.hair_palettes[char_id_for_pal]}")
-                            else:
-                                print(f"Invalid custom hair palette: {file} (validation failed)")
                             
                         except Exception as e:
-                            print(f"Failed to load custom hair palette {file}: {e}")
+                            print(f"CONSOLE ERROR MSG: Failed to load custom hair palette {file}: {e}")
                             continue
         
         # Update the UI sections to reflect the new custom pals (only if requested)
         if update_ui:
+            # Save current selections before updating UI
+            saved_hair_selection = getattr(self, 'hair_var', tk.StringVar()).get() if hasattr(self, 'hair_var') else "NONE"
+            saved_third_job_selection = getattr(self, 'third_job_var', tk.StringVar()).get() if hasattr(self, 'third_job_var') else "NONE"
+            saved_fashion_selections = {}
+            if hasattr(self, 'fashion_vars'):
+                for fashion_type, var in self.fashion_vars.items():
+                    saved_fashion_selections[fashion_type] = var.get()
+            
             self.update_hair_section()
             self.update_fashion_section()
+            
+            # Restore selections after updating UI
+            if hasattr(self, 'hair_var') and saved_hair_selection != "NONE":
+                self.hair_var.set(saved_hair_selection)
+            
+            if hasattr(self, 'third_job_var') and saved_third_job_selection != "NONE":
+                self.third_job_var.set(saved_third_job_selection)
+            
+            if hasattr(self, 'fashion_vars'):
+                for fashion_type, saved_value in saved_fashion_selections.items():
+                    if fashion_type in self.fashion_vars and saved_value != "NONE":
+                        self.fashion_vars[fashion_type].set(saved_value)
 
     def get_custom_pals_paths(self):
         """Get list of custom palette directories to check"""
@@ -8873,11 +10047,6 @@ class PaletteTool:
         # Ensure directories exist
         os.makedirs(custom_fashion_path, exist_ok=True)
         os.makedirs(custom_hair_path, exist_ok=True)
-        print(f"Using custom pals directories:")
-        print(f"  Fashion: {os.path.abspath(custom_fashion_path)}")
-        print(f"  Hair: {os.path.abspath(custom_hair_path)}")
-        if os.path.exists(old_custom_fashion_path):
-            print(f"  Legacy: {os.path.abspath(old_custom_fashion_path)}")
         
         paths = [custom_fashion_path, custom_hair_path]
         if os.path.exists(old_custom_fashion_path):
@@ -8993,6 +10162,56 @@ class PaletteTool:
         
         # Set the window position
         self.master.geometry(f"{window_width}x{window_height}+{x}+{y}")
+    
+    def _bring_live_editor_to_front(self):
+        """Bring the live palette editor window to the front with multiple methods for reliability across platforms."""
+        try:
+            if hasattr(self, '_live_editor_window') and self._live_editor_window and self._live_editor_window.winfo_exists():
+                import platform
+                system = platform.system().lower()
+                
+                # Common methods that work on both platforms
+                self._live_editor_window.deiconify()  # Ensure window is not minimized
+                self._live_editor_window.lift()  # Bring to front in stacking order
+                
+                if system == "windows":
+                    # Windows-specific focus handling
+                    self._live_editor_window.focus_force()  # Force keyboard focus
+                    self._live_editor_window.attributes('-topmost', True)  # Temporarily make topmost
+                    self._live_editor_window.after(100, lambda: self._live_editor_window.attributes('-topmost', False))  # Remove topmost after 100ms
+                    
+                    # Additional Windows focus methods
+                    try:
+                        self._live_editor_window.wm_attributes('-topmost', 1)
+                        self._live_editor_window.after(10, lambda: self._live_editor_window.wm_attributes('-topmost', 0))
+                    except:
+                        pass
+                        
+                elif system == "linux":
+                    # Linux-specific focus handling
+                    self._live_editor_window.focus_set()  # Set focus (gentler than focus_force)
+                    self._live_editor_window.tkraise()  # Raise window in stacking order
+                    
+                    # Try to activate the window (X11 specific)
+                    try:
+                        self._live_editor_window.wm_attributes('-topmost', True)
+                        self._live_editor_window.after(50, lambda: self._live_editor_window.wm_attributes('-topmost', False))
+                    except:
+                        pass
+                        
+                    # Additional method for some Linux window managers
+                    try:
+                        self._live_editor_window.focus()
+                    except:
+                        pass
+                        
+                else:
+                    # Fallback for other systems (macOS, etc.)
+                    self._live_editor_window.focus_set()
+                    self._live_editor_window.tkraise()
+                
+        except Exception as e:
+            pass
     
     def _center_window_on_parent(self, window, parent=None, width=None, height=None):
         """Center a window on its parent window or screen if no parent."""

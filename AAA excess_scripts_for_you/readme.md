@@ -1,24 +1,41 @@
-# Why?
+# Utility Scripts
 
-**Why not.**
+This folder contains various utility scripts organized by function. Each subfolder has its own readme
+    and Windows+Linux click-to-run scripts, in case you need those, too. **Most** of these are:
+        - Recursive (check the folders inside the folder you're in and the ones below it)
+        - Click-to-run (don't require you to input text to complete)
 
-I was using them for this anyway. You might need them.
+## Folder Contents
 
-## Dependencies
+### 1. Cleanup Scripts (`cleanup/`)
+Scripts for cleaning up and managing BMP/PNG files
+- See `cleanup/readme.md` for details
 
-**Required pip installs:**
+### 2. Conversion Scripts (`conversion/`)
+Scripts for converting between different image formats and creating palettes
+- See `conversion/readme.md` for details
 
-```bash
-pip install Pillow
-```
+### 3. Palette Management (`shit/`)
+Scripts for managing and reordering palettes. This is an evil system that caused many bugs for us.
+    Now it's yours.
+- See `shit/readme.md` for details
 
-**Scripts that require Pillow:**
-- `8bitbmp-to-palette.py`
-- `convert_bmp_png_blk.py`
-- `convert_bmp_png_mag.py`
+## Quick Start
+1. Choose the folder with the scripts you need
+2. Run the appropriate start-up script for your OS
+3. Follow the folder's readme for usage instructions
 
-**Scripts that only use built-in Python modules:**
-- `delete_bmp_rename_folder.py`
-- `reorder_palettes_light_to_dark.py`
+## Global Dependencies Overview
 
-That's it. Everything else is built into Python.
+### Cleanup Scripts
+- No external dependencies (uses built-in Python modules only)
+- Safe to run without installation
+
+### Conversion Scripts
+- Requires Pillow (PIL) for image processing
+- Requires numpy for palette generation (make_palettes_v2.py only)
+- Dependency installers provided
+
+### Palette Management
+- No external dependencies (uses built-in Python modules only)
+- Safe to run without installation

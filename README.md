@@ -1,4 +1,4 @@
-# Fashion Previewer v4.0
+# Fashion Previewer v4.1
 
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!
@@ -126,16 +126,15 @@ FashionPreviewer/
 ├── LICENSE                           # Legally binding license
 ├── run_windows.bat                   # Windows launcher
 ├── run_linux.sh                      # Linux launcher
-├── AAA Legacy/                       # Old Versions
-│   ├── v2.0/               
-│   ├── v2.1/               
-│   └── ...                           # Other versions
-├── AAA Tutorials/                    # Tutorial Images
+├── AAA Tutorials/                    # Tutorial Images (optional--for you!)
 │   ├── EditorTutorial.png/           # How to use the editor in general           
 │   └── pythonpathwind.png/           # How to add Python to Environment Paths  
-├── exports/                          # Export directory
+├── exports/                          # Export directory (necessary)
 │   ├── images/                       # Exported BMPs and PNGs
-│   ├── custom_fashion_pals/          # Exported custom palettes
+│   ├── custom_pals/                  # Exported custom palettes
+│   │   ├── fashion/                  # Custom fashion palettes
+│   │   └── hair/                     # Custom hair palettes
+│   ├── full_pals/                    # Full palette exports
 │   ├── icons/                        # Exported icons
 │   └── colors/                       # Saved color collections
 │       ├── json/                     # JSON color files from all editors
@@ -178,8 +177,8 @@ FashionPreviewer/
    - Make sure you DID NOT MOVE THE PALS FOLDER INTO THE CUSTOM PALS FOLDER (don't do that!!!!!!!!!!!!)
    - Double check that the palette is correct in another palette editor and compare it to a vanilla of a
       similar type, including the transparent indexes
-4. The icon editor's color imports are finnicky--the inverse order operation should help adjust, but it
-   is not perfect, and I am sorry. I may be trying to fix this in a future update.
+4. The icon editor's color imports are working now--just feel free to either quicksave or edit it immediately after 
+   saving the pal and it should work correctly! Any bugs, let me know or put 'em in the Github!
 
 ## Troubleshooting
 
@@ -277,3 +276,21 @@ They may be back. Or not properly fixed. We don't know. Better safe than sorry.
    - This was intentional for the zoom at the time
    - Should be fixed in v4.0
 
+### (These *should* be fixed in v4.1+)
+
+20. **Gradients button doesn't use Value and uses Lightness instead!!**
+   - My bad king I used the wrong word and the bot didn't correct me
+   - Should be fixed in v4.1 for ya, let's get that easy bag
+
+21. **MANY ICONS ARE SCREWING UP**
+   - I'm so sorry I know I really just wanted to push out as much of the icon
+      editor as possible. I know it was sloppy, I'm sorry
+   - Should be fixed in v4.1
+
+22. **TOO MANY BUTTONS!!!!**
+   - Not exactly a bug but yeah that's fixed in this version too, I feel you. I was
+      overwhelmed, too.
+   - Option added to *show* excess buttons in v4.1
+
+23. **Run scripts don't check for pip/pillow/python properly!!**
+   - Should be fixed in v4.1 :3

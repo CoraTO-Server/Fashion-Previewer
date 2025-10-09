@@ -144,3 +144,71 @@
 - Fixed characters not centering on the main UI
 - Fixed All/Custom views not populating rows/columns efficiently
 - Fixed flickering of the main UI when Live Pal Editing
+
+# 4.1 - Icon Editor & Bat Reparenting
+
+## Additions
+
+- Added guard rails to Live Pal Editor with 3rd job palettes and hair to not allow icon export
+- Added cute headers to the bat/sh files :3c
+- Added Admin Mode warning for dependency installations on bat/sh files (only needed once!)
+- Added Quick Export Portrait to post-pal saving menu
+    - Simple: Exports as the current Simple Viewer's frame with the palette (only current pal selection's visible)
+    - Advanced: Uses Main UI's previewer to export the portrait (so all pal selections are visible)
+- Added click-to-launch scripts to `AAA excess_scripts` and also organized the folders a little bit + with readme's
+- Added hide checkmark box to Palette Format Options Box to hide by default
+- Added Select All button to both Live Editors
+- Added "Show Dev Buttons" Option to Custom Frame Settings to hide excess buttons by default on Main UI
+- Added new directory `exports/full_pals` for the full pal files to seperate from the other palettes
+- Added "Save Excess Colors to JSON" feature when opening the Live Icon Editor in case the translator doesn't work
+    the way you like (sometimes it doesn't, I won't lie; I did my best, though.)
+- Added checkboxes to the Excess Saving Colors feature to save the option for the session or forever
+- Added a checkmark box to the JSON filtered colors dialogue that keeps it from showing again
+- Added `settings.json` to store user settings and appropriate flags in launcher scripts to create the file if it
+    doesn't already exist
+- Added a check dialogue box when switching to "All" Preview Mode in order to flag for its heavy resource usage
+- Added a dialogue check for "Custom" Preview Mode when displaying over 50 frames for old machines, which will
+    highlight the settings you need to change in order to make it valid for what you want.
+
+## Adjustments
+
+- Adjusted Background Export name autopopulation to use the user's View Statistic of that character as the filename
+    as well as change the end suffixes for the cropped and regular portraits
+- Allowed Black in Icon Editor again
+- Changed original "Quick Export" button to "Quick Export Icon"
+- Changed default image export settings to be BMP / Portrait / Cute Background to make fashion creation even faster
+- Changed default Palette Format to be the PNG Grid
+- Changed default Save Colors Mode to reverse (Left click)
+- Changed `icons/PNG` folders to be `icons/BMP` in `nonremovable_assets`
+- Cleaned up excess print statements to only include Error Handling and necessary informational checks
+- Reparented the Icon Editor's Color Translator to completely translate indexes properly
+- Set the default export directory for Export Palette PNG to `exports/images`
+- Updated the run scripts in the main directory (`run_linux.sh` & `run_windows.bat`) to be more versitile with checking
+    and installing dependencies, handle the newly renamed folders
+
+## Removals
+
+- Removed "Inverse Order" on Icon Editor
+- Removed Gradients Labeling on editor (was never supposed to be there--too many gradients, too bulky)
+- Removed extrenuous debug statements; kept error ones for terminal
+
+## Fixes
+
+- Fixed the default export directory for saving icons malfunctioning
+- Fixed Gradients adjusting Lightness instead of Value like the HSV sliders do
+- Fixed Gradient Button not working properly with user multiselected options
+- Fixed a numerous amount of icons
+- Fixed QuickExport for the Live Pal Editor :3
+- Fixed Advanced Pal Editor's UI to be wide enough to see the full palette again (sorry)
+- Fixed pals not auto-refreshing after the Live Pal Editor closes
+- Fixed Live Pal Editor Window not moving to the front post-edit warning
+- Fixed conflicting Live Pal Editor Simple UI Mode ui code
+- Fixed Save Colors Box on Live Pal Editor not being wide enough, again.
+- Fixed Linux directories again
+- Fixed Exports Folder being made in wrong directory upon startup
+- Fixed Saving Colors not bringing the Live Pal Editor back to the front
+- Fixed Icon Editor Gradient Button not having HSV Checkmark Boxes
+- Fixed Icon Editor's Active Colors not/improperly displaying all actual active colors for characters like Sheep 1st
+    Job - Bow (Magenta detection was fked)
+- Fixed Third Job characters covering the UI buttons again (I have no idea if cursor did it this beta or last update)
+- Fixed Gradient Button being missing in Live Pal Editor
