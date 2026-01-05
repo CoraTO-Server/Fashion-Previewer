@@ -3,25 +3,6 @@
 A Python application for previewing and customizing character fashion using palette files.
 Now including Linux Support!
 
-# PLEASE READ THE LICENSE BEFORE USING THIS PROGRAM
-
-## Please Note:
-
-Our license may appear excessive, political, or restrictive at first glance,
-	but it serves a clear purpose. It is not about vendettas; it is about
-	boundaries. We will not tolerate mistreatment of our staff, our community,
-	our leadership, our love, or our effort. What we’ve built is carried by
-	care, and it deserves to be protected.
-
-This project is not born from spite, but from redemption. It is for the
-	players who were abandoned by greed, corruption, and neglect. It is for
-	those who were outcast, forgotten, or left behind. The developers who never
-	stood a chance without the resources and manpower we now provide.
-
-	We fully intend to break that cycle. The only question is:
-	
-	Will you stand with us, or continue the pattern?
-
 ## Credits
 
 This was made possible by the following players:
